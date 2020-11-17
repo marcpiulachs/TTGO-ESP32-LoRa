@@ -15,6 +15,30 @@ typedef struct
 	int length;
 } QueueData;
 
+/**
+ * @brief Scale data to 16bit/32bit for I2S DMA output.
+ *        DAC can only output 8bit data value.
+ *        I2S DMA will still send 16 bit or 32bit data, the highest 8bit contains DAC data.
+ */
+int example_i2s_dac_data_scale(uint8_t* d_buff, uint8_t* s_buff, uint32_t len)
+{
+    uint32_t j = 0;
+#if (EXAMPLE_I2S_SAMPLE_BITS == 16)
+    for (int i = 0; i < len; i++) {
+        d_buff[j++] = 0;
+        d_buff[j++] = s_buff[i];
+    }
+    return (len * 2);
+#else
+    for (int i = 0; i < len; i++) {
+        d_buff[j++] = 0;
+        d_buff[j++] = 0;
+        d_buff[j++] = 0;
+        d_buff[j++] = s_buff[i];
+    }
+    return (len * 4);
+#endif
+}
 
 static void PlayTask(void *arg)
 {
