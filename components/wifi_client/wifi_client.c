@@ -50,11 +50,10 @@ void wifiClientResetNVS(void){
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
-	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "wifiSSID", "Wifi"));
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "wifiSSID", "WiFi"));
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
-	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "wifiPassword", "password"));
-
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "wifiPassword", "Password"));
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);

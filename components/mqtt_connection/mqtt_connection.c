@@ -78,7 +78,7 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
 
         case MQTT_EVENT_PUBLISHED:
         	wifiUsed();
-            // ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+            ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
 		break;
 
         case MQTT_EVENT_DATA:
@@ -154,6 +154,9 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
             ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
 		break;
 
+		case MQTT_EVENT_ANY:
+			ESP_LOGI(TAG, "MQTT_EVENT_ANY");
+			break;
     }
     return ESP_OK;
 }

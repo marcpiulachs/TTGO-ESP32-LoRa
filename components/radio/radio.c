@@ -6,7 +6,7 @@
 #include <string.h>
 #include <driver/gpio.h>
 #include <esp_log.h>
-#include <crypto/crypto.h>
+//#include <aes.h>
 #include <math.h>
 
 #include "message.h"
@@ -208,7 +208,7 @@ static void radioEncrypt(unsigned char * buffer, int * length){
 	for (int i = 0; i < blocks; i++) {
 
 		int offset = i * BLOCK_LENGTH;
-		aes_encrypt(aesEncryptContext, buffer + offset, buffer + offset);
+		//aes_encrypt(aesEncryptContext, buffer + offset, buffer + offset);
 	}
 
 	*length = (blocks * BLOCK_LENGTH);
@@ -225,7 +225,7 @@ static int radioDecrypt(unsigned char * buffer, int * length){
 	for (int i = 0; i < blocks; i++) {
 
 		int offset = i * BLOCK_LENGTH;
-		aes_decrypt(aesDecryptContext, buffer + offset, buffer + offset);
+		//aes_decrypt(aesDecryptContext, buffer + offset, buffer + offset);
 	}
 
 	if (buffer[0] != ENC_TEST_CHAR){
@@ -367,18 +367,20 @@ void radioInit(void){
 	nvs_get_u32(nvsHandle, "loraRXSyncWord", &loraRXSyncWord);
 
 	ESP_LOGI(TAG, "Setting key %s", loraKey);
+/*
 	aesEncryptContext = aes_encrypt_init( (unsigned char *) loraKey, strlen(loraKey));
 
 	if (!aesEncryptContext){
 		ESP_LOGE(TAG, "aes_encrypt_init failed");
 	}
-
+*/
+/*
 	aesDecryptContext = aes_decrypt_init( (unsigned char *) loraKey, strlen(loraKey));
 
 	if (!aesDecryptContext){
 		ESP_LOGE(TAG, "aes_encrypt_init failed");
 	}
-
+*/
 	radioQueue = xQueueCreate(4, sizeof(message_t));
 
 	gpio_config_t io_conf;
@@ -401,7 +403,7 @@ void radioInit(void){
     gpio_isr_handler_add(LORA_IRQ, radioLoraISR, (void*) LORA_IRQ);
 
     ESP_ERROR_CHECK(gpio_wakeup_enable(LORA_IRQ, GPIO_INTR_HIGH_LEVEL));
-    ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+  //  ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
 
 
 	lora_init();

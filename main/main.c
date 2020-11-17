@@ -27,8 +27,9 @@
 
 static const char *TAG = "Main";
 
-void app_main(void) {
-
+void app_main(void) 
+{
+	char deviceName[16] = {0};
 	ssd1306Init();
 
 	esp_err_t espError;
@@ -51,10 +52,11 @@ void app_main(void) {
     nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
-	size_t nvsLength;
-	espError = nvs_get_str(nvsHandle, "uniqueName", NULL, &nvsLength);
+	size_t nvsLength = sizeof(deviceName);
+	espError = nvs_get_str(nvsHandle, "uniqueName", deviceName, &nvsLength);
 
-	if (espError == ESP_ERR_NVS_NOT_FOUND){
+	if (espError == ESP_ERR_NVS_NOT_FOUND)
+	{
 		uint8_t mac[6];
 	    char id_string[8] = {0};
 	    esp_read_mac(mac, ESP_MAC_WIFI_STA);
@@ -67,7 +69,7 @@ void app_main(void) {
 	    id_string[5] = 'a' + ((mac[5] >> 4) & 0x0F);
 	    id_string[6] = 0;
 
-	    ESP_LOGE(TAG, "id_string %s, B:%d, 1:%d, 2:%d, A1:%d, A2:%d",
+	    ESP_LOGW(TAG, "id_string %s, B:%d, 1:%d, 2:%d, A1:%d, A2:%d",
 	    	id_string,
 	    	mac[3],
 	    	((mac[3] >> 0) & 0x0F),
@@ -81,6 +83,8 @@ void app_main(void) {
 		nvs_close(nvsHandle);
 	}
 
+    ESP_LOGW(TAG, "Device name: %s", deviceName);
+	
 	// Setup config button
 	gpio_config_t io_conf;
     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
@@ -103,7 +107,7 @@ void app_main(void) {
 
     configMode = !gpio_get_level(0);
 
-    if (configMode){
+    if (!configMode){
 
     	strcpy(disaply.text, "Starting in config mode.");
 
@@ -117,7 +121,7 @@ void app_main(void) {
     	mqttConnectionResetNVS();
     	elasticResetNVS();
     	datTimeResetNVS();
-    	radioResetNVS();
+  //  	radioResetNVS();
     	dieSensorsResetNVS();
 
     	wifiAccessPointInit();
@@ -137,7 +141,7 @@ void app_main(void) {
 	    // automatic light sleep is enabled if tickless idle support is enabled.
 	    esp_pm_config_esp32_t pm_config = {
 	            .max_freq_mhz = CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ,
-	            .min_freq_mhz = 26,
+	            .min_freq_mhz = CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ,
 		#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
 	            .light_sleep_enable = true
 		#endif
@@ -155,7 +159,7 @@ void app_main(void) {
 
     elasticInit();
 
-    radioInit();
+//    radioInit();
 
     dieSensorsInit();
 }

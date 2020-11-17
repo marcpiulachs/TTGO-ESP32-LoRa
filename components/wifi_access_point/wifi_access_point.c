@@ -2,7 +2,7 @@
 
 #include "wifi.h"
 
-#define WIFI_AP_SSID "Beeline Configuration AP"
+#define WIFI_AP_SSID "HDO Station Configuration AP"
 
 void wifiAccessPointInit(void) {
 
