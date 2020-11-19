@@ -1,17 +1,23 @@
 {
     "configurations": [
-        {
-            "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "${config.idf.espIdfPath}/components/**"
-            ],
-            "defines": [],
-            "compilerPath": "/usr/bin/gcc",
-            "cStandard": "gnu17",
-            "cppStandard": "gnu++14",
-            "intelliSenseMode": "gcc-x64"
+      {
+        "name": "Linux",
+        "cStandard": "c11",
+        "cppStandard": "c++17",
+        "includePath": [
+          "${config:idf.espIdfPath}/components/**",
+          "${config:idf.espIdfPathWin}/components/**",
+          "${workspaceFolder}/**"
+        ],
+        "browse": {
+          "path": [
+            "${config:idf.espIdfPath}/components",
+            "${config:idf.espIdfPathWin}/components",
+            "${workspaceFolder}"
+          ],
+          "limitSymbolsToIncludedHeaders": false
         }
+      }
     ],
     "version": 4
-}
+  }

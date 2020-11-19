@@ -1,5 +1,6 @@
 #include "audio.h"
 #include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <freertos/task.h>
 #include <driver/i2s.h>
 
