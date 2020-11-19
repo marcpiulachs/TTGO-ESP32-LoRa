@@ -102,14 +102,15 @@ static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){
         	break;
 
     	case SYSTEM_EVENT_STA_GOT_IP:
-    		wifiGotIP(&event->event_info.got_ip.ip_info.ip);
     		ESP_LOGI(TAG, "SYSTEM_EVENT_STA_GOT_IP");
-
+    		wifiGotIP(&event->event_info.got_ip.ip_info.ip);
         	xEventGroupSetBits(wifiEventGroup, WIFI_CONNECTED_BIT);
         	break;
 
         case SYSTEM_EVENT_STA_DISCONNECTED:
         	ESP_LOGI(TAG, "SYSTEM_EVENT_STA_DISCONNECTED");
+			system_event_sta_disconnected_t *disconnected = &event->event_info.disconnected;
+			ESP_LOGE(TAG, "ssid:%s, ssid_len:%d, bssid:" MACSTR ", reason:%d", disconnected->ssid, disconnected->ssid_len, MAC2STR(disconnected->bssid), disconnected->reason);
         	xEventGroupClearBits(wifiEventGroup, WIFI_CONNECTED_BIT);
         	esp_wifi_connect();
         	break;

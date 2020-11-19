@@ -4,7 +4,7 @@
 #include <driver/i2s.h>
 
 
-static const gpio_num_t AUDIO_AMP_SD_PIN = GPIO_NUM_25;
+//static const gpio_num_t AUDIO_AMP_SD_PIN = GPIO_NUM_25;
 
 static QueueHandle_t gQueue;
 
@@ -14,31 +14,6 @@ typedef struct
 	uint16_t* buffer;
 	int length;
 } QueueData;
-
-/**
- * @brief Scale data to 16bit/32bit for I2S DMA output.
- *        DAC can only output 8bit data value.
- *        I2S DMA will still send 16 bit or 32bit data, the highest 8bit contains DAC data.
- */
-int example_i2s_dac_data_scale(uint8_t* d_buff, uint8_t* s_buff, uint32_t len)
-{
-    uint32_t j = 0;
-#if (EXAMPLE_I2S_SAMPLE_BITS == 16)
-    for (int i = 0; i < len; i++) {
-        d_buff[j++] = 0;
-        d_buff[j++] = s_buff[i];
-    }
-    return (len * 2);
-#else
-    for (int i = 0; i < len; i++) {
-        d_buff[j++] = 0;
-        d_buff[j++] = 0;
-        d_buff[j++] = 0;
-        d_buff[j++] = s_buff[i];
-    }
-    return (len * 4);
-#endif
-}
 
 static void PlayTask(void *arg)
 {
@@ -60,6 +35,7 @@ static void PlayTask(void *arg)
 void Odroid_InitializeAudio(void)
 {
 	// Configure the amplifier shutdown signal
+/*
 	{
 		gpio_config_t gpioConfig = {};
 
@@ -70,7 +46,7 @@ void Odroid_InitializeAudio(void)
 
 		gpio_set_level(AUDIO_AMP_SD_PIN, 1);
 	}
-
+*/
 	// Configure the I2S driver
 	{
 		i2s_config_t i2sConfig= {};
@@ -97,12 +73,20 @@ void Odroid_InitializeAudio(void)
 	}
 }
 
-void Odroid_PlayAudio(uint16_t* buffer, int length)
+void Odroid_PlayAudio(uint8_t* buffer, int length)
 {
 	QueueData data = {};
 
-	data.buffer = buffer;
-	data.length = length;
+	uint16_t* soundBuffer = malloc(length * 2);
+
+	for (int i = 0; i < length; ++i)
+    {
+        // 16 bits required but only MSB is actually sent to the DAC
+        soundBuffer[i] = (buffer[i] << 8u);
+    }
+
+	data.buffer = soundBuffer;
+	data.length = length * 2;
 
 	xQueueSendToBack(gQueue, &data, portMAX_DELAY);
 }

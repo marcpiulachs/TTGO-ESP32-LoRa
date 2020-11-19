@@ -35,6 +35,10 @@ void wifiClientInit(void) {
     nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
     nvs_get_str(nvsHandle, "wifiPassword", (char *) wifi_config.sta.password, &nvsLength);
 
+		ESP_LOGW(TAG, "Conecting to SSID : '%s' with password : '%s'", 
+			wifi_config.sta.ssid,
+			wifi_config.sta.password);
+    	
     nvs_close(nvsHandle);
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));

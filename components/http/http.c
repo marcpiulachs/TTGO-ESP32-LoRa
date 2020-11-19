@@ -415,9 +415,10 @@ static httpd_handle_t start_webserver(void) {
     ESP_LOGI(TAG, "Starting server on port: %d", config.server_port);
     httpd_handle_t server;
 
-    if (httpd_start(&server, &config) == ESP_OK) {
-        // Set URI handlers
-        printf("http: Registering URI handlers");
+    if (httpd_start(&server, &config) == ESP_OK) 
+	{    
+		// Set URI handlers
+        ESP_LOGI(TAG, "http: Registering URI handlers");
 
         httpPageConfigDeviceHTMLInit(server);
         httpPageConfigDieSensorsHTMLInit(server);
@@ -436,7 +437,7 @@ static httpd_handle_t start_webserver(void) {
         return server;
     }
 
-    printf("http: / Error starting server!");
+    ESP_LOGE(TAG, "http: / Error starting server!");
     return NULL;
 }
 

@@ -28,7 +28,8 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
     int msg_id;
 
     // your_context_t *context = event->context;
-    switch (event->event_id) {
+    switch (event->event_id) 
+	{
         case MQTT_EVENT_CONNECTED:
         	xEventGroupSetBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT);
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
@@ -84,9 +85,7 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
         case MQTT_EVENT_DATA:
         	wifiUsed();
 
-
-
-        	char topic[64] = {0};
+    		char topic[64] = {0};
         	strncpy(topic, event->topic,  MIN(event->topic_len, sizeof(topic)));
 
         	char value[64] = {0};
@@ -207,6 +206,7 @@ void mqttConnectionSetClient(void){
 
     client = esp_mqtt_client_init(&mqtt_cfg);
 }
+
 void mqttConnectionWiFiConnected(void){
 	mqttConnectionSetClient();
 	esp_mqtt_client_start(client);
@@ -281,7 +281,7 @@ static void mqttConnectionTask(void *arg){
 		msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
 
 		ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
-		ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+		ESP_LOGI(TAG, "Sent publish successful, msg_id=%d", msg_id);
 	}
 }
 

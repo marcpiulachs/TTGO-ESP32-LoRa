@@ -67,8 +67,8 @@ void dateTimeInit(void){
 	datetimeEventGroup = xEventGroupCreate();
 
 	xTaskCreate(&dateTimeTask, "dateTimeTask", 2048, NULL, 13, NULL);
-
 }
+
 void datTimeResetNVS(void){
 
 	nvs_handle nvsHandle;
@@ -78,5 +78,4 @@ void datTimeResetNVS(void){
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);
-
 }

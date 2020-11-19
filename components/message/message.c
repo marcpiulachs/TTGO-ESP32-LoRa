@@ -46,6 +46,7 @@ void messageIn(message_t * messagePointer, const char * from){
 		valueString
 	);
 
+/*
 	disaplyLine++;
 	if (disaplyLine > 8){
 		disaplyLine = 0;
@@ -61,7 +62,7 @@ void messageIn(message_t * messagePointer, const char * from){
 	strcat(ssd1306Text.text, valueString);
 
 	ssd1306QueueText(&ssd1306Text);
-
+*/
 
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
@@ -77,7 +78,7 @@ void messageIn(message_t * messagePointer, const char * from){
 
 	if ((routing >> LORA) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to LoRa");
-		radioLoRaQueueAdd(messagePointer);
+//		radioLoRaQueueAdd(messagePointer);
 	}
 
 	if ((routing >> MQTT) & 0x01){
@@ -87,12 +88,12 @@ void messageIn(message_t * messagePointer, const char * from){
 
 	if ((routing >> ELASTICSEARCH) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to Elasticsearch");
-		elasticQueueAdd(messagePointer);
+//		elasticQueueAdd(messagePointer);
 	}
 
 	if ((routing >> DISPLAY) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to Display");
-		displayQueueAdd(messagePointer);
+//		displayQueueAdd(messagePointer);
 	}
 
 }

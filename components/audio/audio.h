@@ -4,4 +4,4 @@
 
 
 void Odroid_InitializeAudio(void);
-void Odroid_PlayAudio(uint16_t* buffer, int length);
+void Odroid_PlayAudio(uint8_t* buffer, int length);

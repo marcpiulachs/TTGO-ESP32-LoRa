@@ -20,6 +20,8 @@
 #include "datetime.h"
 #include "ssd1306.h"
 #include "radio.h"
+#include "audio.h"
+#include "samples.h"
 
 // #include "os.h"
 // #include "sys/param.h"
@@ -29,16 +31,11 @@ static const char *TAG = "Main";
 
 void app_main(void) 
 {
-	char deviceName[16] = {0};
 	ssd1306Init();
 
 	esp_err_t espError;
-	ssd1306Text_t disaply;
-	disaply.line = 0;
 
-	strcpy(disaply.text, "Booting...");
-	ssd1306QueueText(&disaply);
-
+	ESP_LOGW(TAG, "Starting up device....");
 
     //Initialize NVS
 	espError = nvs_flash_init();
@@ -52,6 +49,7 @@ void app_main(void)
     nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
+	char deviceName[16] = {0};
 	size_t nvsLength = sizeof(deviceName);
 	espError = nvs_get_str(nvsHandle, "uniqueName", deviceName, &nvsLength);
 
@@ -80,6 +78,7 @@ void app_main(void)
 
 		ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "uniqueName", id_string));
 		ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+		
 		nvs_close(nvsHandle);
 	}
 
@@ -96,10 +95,7 @@ void app_main(void)
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    strcpy(disaply.text, "Hold PRG for config mode.");
-    ssd1306QueueText(&disaply);
-    ESP_LOGW(TAG, "%s", disaply.text);
-
+    ESP_LOGW(TAG, "Hold PRG for config mode.");
 
     vTaskDelay(2000 / portTICK_PERIOD_MS);
 
@@ -107,13 +103,9 @@ void app_main(void)
 
     configMode = !gpio_get_level(0);
 
-    if (!configMode){
+    if (configMode){
 
-    	strcpy(disaply.text, "Starting in config mode.");
-
-    	ssd1306QueueText(&disaply);
-
-    	ESP_LOGW(TAG, "%s", disaply.text);
+    	ESP_LOGW(TAG, "Starting in config mode. Reseting all values to factory defaults.");
 
     	// Reset all NVS data so we always get known values and don't crash
     	wifiResetNVS();
@@ -124,15 +116,15 @@ void app_main(void)
   //  	radioResetNVS();
     	dieSensorsResetNVS();
 
+		/* Starting up as a configuration AP */
     	wifiAccessPointInit();
     }
-    else{
-
-    	strcpy(disaply.text, "Starting in normal mode.");
-    	ssd1306QueueText(&disaply);
-
-    	ESP_LOGW(TAG, "%s", disaply.text);
-    	wifiClientInit();
+    else
+	{
+    	ESP_LOGW(TAG, "Starting in normal mode.");
+    
+		/* Starting up as a network client device */
+		wifiClientInit();
     }
 
     #if CONFIG_PM_ENABLE
@@ -162,5 +154,8 @@ void app_main(void)
 //    radioInit();
 
     dieSensorsInit();
-}
 
+	Odroid_InitializeAudio();
+
+	Odroid_PlayAudio(jump, jump_len);
+}
