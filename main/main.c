@@ -15,27 +15,69 @@
 #include "mqtt_connection.h"
 #include "die_sensors.h"
 #include "elastic.h"
-#include "display.h"
+//#include "display.h"
 // #include "radio.h"
 #include "datetime.h"
-#include "ssd1306.h"
-#include "radio.h"
+//#include "radio.h"
 #include "audio.h"
-#include "samples.h"
-
+#include "sounds.h"
+#include <driver/i2s.h>
 // #include "os.h"
 // #include "sys/param.h"
 // #include "crypto/base64.h"
 
 static const char *TAG = "Main";
 
+void makenoise()
+{
+	// Configure the I2S driver
+
+	{
+		i2s_config_t i2sConfig= {};
+
+		i2sConfig.mode = I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
+		i2sConfig.sample_rate = 8000;
+		i2sConfig.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+		i2sConfig.communication_format = I2S_COMM_FORMAT_I2S_MSB;
+		i2sConfig.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
+		i2sConfig.dma_buf_count = 8;
+		i2sConfig.dma_buf_len = 64;
+
+		ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2sConfig, 0, NULL));
+		ESP_ERROR_CHECK(i2s_set_dac_mode(I2S_DAC_CHANNEL_LEFT_EN));
+	}
+       while(true)
+       {
+    	   	   size_t bytesWritten;
+       			i2s_write(I2S_NUM_0, dat, sizeof(dat), &bytesWritten, portMAX_DELAY);
+       			i2s_zero_dma_buffer(I2S_NUM_0);
+
+       		 vTaskDelay(1000 / portTICK_PERIOD_MS);
+       		ESP_LOGW(TAG, "Su puta madre.");
+       }
+
+       while(true)
+       {
+			size_t bytesWritten;
+		i2s_write(I2S_NUM_0, dat, sizeof(dat), &bytesWritten, portMAX_DELAY);
+		i2s_zero_dma_buffer(I2S_NUM_0);
+
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+		
+	   }
+
+}
+
 void app_main(void) 
 {
-	ssd1306Init();
+	makenoise();
 
 	esp_err_t espError;
 
 	ESP_LOGW(TAG, "Starting up device....");
+    ESP_LOGI(TAG, "Free memory: %d bytes", esp_get_free_heap_size());
+    ESP_LOGI(TAG, "IDF version: %s", esp_get_idf_version());
 
     //Initialize NVS
 	espError = nvs_flash_init();
@@ -141,6 +183,7 @@ void app_main(void)
     	ESP_ERROR_CHECK( esp_pm_configure(&pm_config) );
 	#endif // CONFIG_PM_ENABLE
 
+/*
     dateTimeInit();
 
     httpServerInit();
@@ -151,11 +194,11 @@ void app_main(void)
 
     elasticInit();
 
-//    radioInit();
-
     dieSensorsInit();
+*/
+	//Odroid_InitializeAudio();
 
-	Odroid_InitializeAudio();
 
-	Odroid_PlayAudio(jump, jump_len);
+	//Odroid_PlayAudio(dat, sizeof(dat));
 }
+

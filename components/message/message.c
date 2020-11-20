@@ -3,13 +3,8 @@
 #include <esp_log.h>
 
 #include "message.h"
-#include "radio.h"
 #include "mqtt_connection.h"
 #include "elastic.h"
-#include "display.h"
-
-
-#include "ssd1306.h"
 
 #define TAG "message"
 

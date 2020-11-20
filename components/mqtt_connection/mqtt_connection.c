@@ -23,7 +23,39 @@ static const char *TAG = "MQTT";
 
 static const char * ROUTE_NAME = "mqtt";
 
-static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
+char deviceName[16] = {0};
+char mqttInTopic[64];
+
+char mqttValve1Topic[64] = {0};
+char mqttValve2Topic[64] = {0};
+
+void mqttConnectionLoadValues (void)
+{
+	size_t nvsLength;
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	nvsLength = sizeof(deviceName);
+	ESP_ERROR_CHECK(nvs_get_str(nvsHandle, "uniqueName", deviceName, &nvsLength));
+
+/*
+	nvsLength = sizeof(mqttInTopic);
+	ESP_ERROR_CHECK(nvs_get_str(nvsHandle, "mqttInTopic", mqttInTopic, &nvsLength));
+*/
+
+	nvs_close(nvsHandle);
+
+	strcpy(mqttValve1Topic, "/");
+	strcat(mqttValve1Topic, deviceName);
+	strcat(mqttValve1Topic, "/valve1");
+
+	strcpy(mqttValve2Topic, "/");
+	strcat(mqttValve2Topic, deviceName);
+	strcat(mqttValve2Topic, "/valve2");
+}
+
+static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) 
+{
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
 
@@ -33,26 +65,29 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
         case MQTT_EVENT_CONNECTED:
         	xEventGroupSetBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT);
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+			mqttConnectionLoadValues();
 
-            size_t nvsLength;
-            nvs_handle nvsHandle;
-			ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
-
-			char mqttInTopic[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
-			nvsLength = sizeof(mqttInTopic);
-			nvs_get_str(nvsHandle, "mqttInTopic", mqttInTopic, &nvsLength);
-
-			nvs_close(nvsHandle);
-
-            msg_id = esp_mqtt_client_subscribe(client, mqttInTopic, 0);
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve1Topic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttValve1Topic, 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
-            // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-            // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve2Topic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttValve2Topic, 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
-            // msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-            // ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
+			/*
+            msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
+            ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
 
+            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+            msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
+            ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
+			*/
 
 		break;
 
@@ -84,70 +119,41 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
 
         case MQTT_EVENT_DATA:
         	wifiUsed();
+			ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+			
+			printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+			printf("DATA=%.*s\r\n", event->data_len, event->data);			
 
-    		char topic[64] = {0};
-        	strncpy(topic, event->topic,  MIN(event->topic_len, sizeof(topic)));
+            // Get the topic name
+            char *topic = malloc(event->topic_len + 1);
+            memcpy(topic, event->topic, event->topic_len);
+            topic[event->topic_len] = '\0';
 
-        	char value[64] = {0};
-        	strncpy(value, event->data,  MIN(event->data_len, sizeof(value)));
+            // Get the data
+            char *data = malloc(event->data_len + 1);
+            memcpy(data, event->data, event->data_len);
+            data[event->data_len] = '\0';
 
-        	ESP_LOGI(TAG, "topic %s", topic);
-
-        	const char * delim = "/";
-        	char * subTopic = strtok(topic, delim);
-
-        	char * subTopics[3] = {NULL, NULL, NULL};
-
-        	int index = 0;
-        	while (subTopic != NULL){
-
-        		if (index > 1) {
-        			subTopics[0] = subTopics[1];
-        		}
-        		if (index > 0) {
-        			subTopics[1] = subTopics[2];
-        		}
-
-        		subTopics[2] = subTopic;
-
-        		index++;
-
-        		subTopic = strtok(NULL, delim);
-        	}
-
-        	if (!(subTopics[0] && subTopics[1] && subTopics[2])) {
-        		ESP_LOGE(TAG, "Unable to get last 3 sub topics device/sensor/valueype");
-        		break;
-        	}
-
-        	message_t message;
-
-        	strcpy(message.deviceName, subTopics[0]);
-        	strcpy(message.sensorName, subTopics[1]);
-
-        	if (strcmp(subTopics[2], "int") == 0) {
-				message.valueType = MESSAGE_INT;
-				message.intValue = atoi(value);
-			}
-			else if (strcmp(subTopics[2], "float") == 0) {
-				message.valueType = MESSAGE_FLOAT;
-				message.floatValue = atof(value);
-			}
-			else if (strcmp(subTopics[2], "double") == 0) {
-				message.valueType = MESSAGE_DOUBLE;
-				message.doubleValue = atof(value);
-			}
-			else if (strcmp(subTopics[2], "string") == 0) {
-				message.valueType = MESSAGE_STRING;
-				strcpy(message.stringValue, value);
-			}
-			else{
-				ESP_LOGE(TAG, "Unknown type '%s'", subTopics[2]);
-        		break;
+            if (strcmp(topic, mqttValve1Topic) == 0) {
+                if (strcmp(data, "OPEN") == 0) {
+                    ESP_LOGI(TAG, "Valve1 open requested");
+                }
+				else{
+					ESP_LOGI(TAG, "Valve1 close requested");
+				}
+            } else if (strcmp(topic, mqttValve2Topic) == 0) {
+                if (strcmp(data, "OPEN") == 0) {
+                    ESP_LOGI(TAG, "Valve1 open requested");
+                }
+				else{
+					ESP_LOGI(TAG, "Valve1 close requested");
+				}
 			}
 
-			messageIn(&message, ROUTE_NAME);
-		break;
+ 			free(topic);
+            free(data);
+
+			break;
 
         case MQTT_EVENT_ERROR:
             ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -245,41 +251,36 @@ static void mqttConnectionTask(void *arg){
 			continue;
 		}
 
-		char mqttTopic[sizeof(message.deviceName) + sizeof(message.sensorName) + 1] = {0};
-		char mqttValue[sizeof(message.stringValue)] = {0};
-
-		strcpy(mqttTopic, mqttOutTopic);
+		char mqttTopic[64] = {0};
+		char mqttValue[64] = {0};
 		strcat(mqttTopic, "/");
 		strcat(mqttTopic, message.deviceName);
 		strcat(mqttTopic, "/");
 		strcat(mqttTopic, message.sensorName);
 
-		switch (message.valueType){
-
+		switch (message.valueType)
+		{
 			case MESSAGE_INT:
 				sprintf(mqttValue, "%d", message.intValue);
-				strcat(mqttTopic, "/int");
 			break;
 
 			case MESSAGE_FLOAT:
 				sprintf(mqttValue, "%.4f", message.floatValue);
-				strcat(mqttTopic, "/float");
 			break;
 
 			case MESSAGE_DOUBLE:
 				sprintf(mqttValue, "%.8f", message.doubleValue);
-				strcat(mqttTopic, "/double");
 			break;
 
 			case MESSAGE_STRING:
 				sprintf(mqttValue, "%s", message.stringValue);
-				strcat(mqttTopic, "/string");
 			break;
 		}
 
 		int msg_id;
 		msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
 
+		ESP_LOGI(TAG, "Publishing MQTT message to broker");
 		ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
 		ESP_LOGI(TAG, "Sent publish successful, msg_id=%d", msg_id);
 	}
@@ -306,23 +307,19 @@ void mqttConnectionInit(void){
 	wifiUsed();
 }
 
-void mqttConnectionResetNVS(void) {
+void mqttConnectionResetNVS(void) 
+{
 	nvs_handle nvsHandle;
+
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttHost", "mqtt.server.example.com"));
-
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "mqttPort", 1883));
-
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttUsername", "Username"));
-
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttPassword", "Password"));
-
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "mqttKeepalive", 30));
-
-	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttOutTopic", "/beeline/in"));
-
-	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttInTopic", "/beeline/out/#"));
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttOutTopic", "/beeline/out/#"));
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttInTopic", "/beeline/in"));
 
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 

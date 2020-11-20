@@ -56,6 +56,7 @@ static void dateTimeTask(void *arg){
     }
 
     ESP_LOGI(TAG, "Time ready.");
+	ESP_LOGI(TAG, "Response time from %s was '%s'", dateTimeNTPHost, ctime(&now)); 
 
     xEventGroupSetBits(datetimeEventGroup, TIME_READY_BIT);
 

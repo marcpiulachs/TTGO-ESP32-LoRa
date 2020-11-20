@@ -9,7 +9,18 @@
     },
     "C_Cpp.intelliSenseEngineFallback": "Enabled",
     "files.associations": {
-        "nvs_flash.h": "c"
-    }
+      "nvs_flash.h": "c",
+      "sstream": "c",
+      "strstream": "c",
+      "*.inc": "c",
+      "array": "c",
+      "vector": "c",
+      "xstring": "c",
+      "xutility": "c",
+      "future": "c",
+      "system_error": "c",
+      "*.ipp": "c"
+    },
+    "idf.portWin": "COM3"
   }
   

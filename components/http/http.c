@@ -9,6 +9,7 @@
 
 #include "wifi.h"
 
+#include "config_reset_html.h"
 #include "config_device_html.h"
 #include "config_diesensors_html.h"
 #include "config_display_html.h"
@@ -420,6 +421,7 @@ static httpd_handle_t start_webserver(void) {
 		// Set URI handlers
         ESP_LOGI(TAG, "http: Registering URI handlers");
 
+		httpPageConfigResetHTMLInit(server);
         httpPageConfigDeviceHTMLInit(server);
         httpPageConfigDieSensorsHTMLInit(server);
         httpPageConfigDisplayHTMLInit(server);

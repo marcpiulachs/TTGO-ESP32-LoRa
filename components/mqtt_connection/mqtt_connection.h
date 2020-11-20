@@ -9,6 +9,7 @@
 #include "message.h"
 
 void mqttConnectionInit(void);
+void mqttConnectionLoadValues(void);
 void mqttConnectionResetNVS(void);
 void mqttConnectionQueueAdd(message_t * message);
 void mqttConnectionWiFiConnected(void);

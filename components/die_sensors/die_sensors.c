@@ -9,6 +9,7 @@
 #include <math.h>
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
+#include <esp_wifi.h>
 #include <nvs_flash.h>
 #include <esp_system.h>
 
@@ -137,7 +138,7 @@ static void dieSensorsBatteryVoltageTask(void * arg){
 
 	message_t message;
 	message.valueType = MESSAGE_FLOAT;
-	strcpy(message.sensorName, "Battery");
+	strcpy(message.sensorName, "battery");
 
 	size_t nvsLength;
 	nvs_handle nvsHandle;
@@ -147,6 +148,8 @@ static void dieSensorsBatteryVoltageTask(void * arg){
 	unsigned int delay;
 
 	while(1) {
+
+		ESP_LOGI(TAG, "Battery");
 
 		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
 
@@ -162,6 +165,51 @@ static void dieSensorsBatteryVoltageTask(void * arg){
 		adc1_config_width(ADC_WIDTH_BIT_12);
 		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
 		message.floatValue = dieSensorsReadADC(ADC1_CHANNEL_0) * 2;
+
+		nvsLength = sizeof(message.deviceName);
+		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
+
+		messageIn(&message, ROUTE_NAME);
+	}
+
+	nvs_close(nvsHandle);
+
+	vTaskDelete(NULL);
+}
+
+static void wiFiSignalStrenghtTask(void * arg){
+
+	message_t message;
+	message.valueType = MESSAGE_INT;
+	strcpy(message.sensorName, "RSSI");
+
+	size_t nvsLength;
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	unsigned char dieSensEn;
+	unsigned int delay;
+
+	while(1) {
+
+		ESP_LOGI(TAG, "WiFI signal strenght");
+
+		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
+
+		if (!((dieSensEn >> BATTERY_VOLTAGE) & 0x01)) {
+			vTaskDelay(4000 / portTICK_RATE_MS);
+			continue;
+		}
+
+		nvs_get_u32(nvsHandle, "delayBattV", &delay);
+
+		vTaskDelay(delay / portTICK_RATE_MS);
+
+		wifi_ap_record_t wifidata;
+		if (esp_wifi_sta_get_ap_info(&wifidata)==0){
+			ESP_LOGI(TAG,"WiFi RSSI:%d\r\n", wifidata.rssi);
+			message.intValue = wifidata.rssi;
+		}
 
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
@@ -196,6 +244,7 @@ void dieSensorsInit(void) {
 	xTaskCreate(&dieSensorsTemperatureTask, "dieSensorsTemp", 4096, NULL, 10, NULL);
 	xTaskCreate(&dieSensorsHallEffectTask, "dieSensorsHall", 4096, NULL, 10, NULL);
 	xTaskCreate(&dieSensorsBatteryVoltageTask, "dieSensorsBattyV", 4096, NULL, 10, NULL);
+	xTaskCreate(&wiFiSignalStrenghtTask, "wifiRSSI", 4096, NULL, 10, NULL);
 }
 
 void dieSensorsResetNVS(void) {
