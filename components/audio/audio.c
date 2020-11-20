@@ -37,7 +37,7 @@ static void PlayTask(void *arg)
 	}
 }
 
-void Odroid_InitializeAudio(void)
+void audioInit(void)
 {
 	// Configure the amplifier shutdown signal
 /*
@@ -80,7 +80,7 @@ void Odroid_InitializeAudio(void)
 	ESP_LOGW(TAG, "Audio initialized.");
 }
 
-void Odroid_PlayAudio(uint8_t* buffer, int length)
+void audioPlay(uint8_t* buffer, int length)
 {
 	QueueData data = {};
 
