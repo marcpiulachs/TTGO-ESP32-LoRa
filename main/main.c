@@ -71,8 +71,6 @@ void makenoise()
 
 void app_main(void) 
 {
-	makenoise();
-
 	esp_err_t espError;
 
 	ESP_LOGW(TAG, "Starting up device....");
@@ -183,22 +181,22 @@ void app_main(void)
     	ESP_ERROR_CHECK( esp_pm_configure(&pm_config) );
 	#endif // CONFIG_PM_ENABLE
 
-/*
     dateTimeInit();
 
     httpServerInit();
 
     mqttConnectionInit();
 
-    displayInit();
-
-    elasticInit();
-
     dieSensorsInit();
-*/
-	//Odroid_InitializeAudio();
 
+	Odroid_InitializeAudio();
 
-	//Odroid_PlayAudio(dat, sizeof(dat));
+	while(true)
+	{
+		Odroid_PlayAudio(dat, sizeof(dat));
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
+		Odroid_PlayAudio(dat1, sizeof(dat1));
+		vTaskDelay(10000 / portTICK_PERIOD_MS);
+	}
 }
 

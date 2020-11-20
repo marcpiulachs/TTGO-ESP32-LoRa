@@ -300,7 +300,7 @@ void mqttConnectionInit(void){
 
 	mqttConnectionEventGroup = xEventGroupCreate();
 
-	mqttConnectionQueue = xQueueCreate(4, sizeof(message_t));
+	mqttConnectionQueue = xQueueCreate(10, sizeof(message_t));
 
 	xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 13, NULL);
 
