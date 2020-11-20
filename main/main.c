@@ -146,13 +146,10 @@ void app_main(void)
     dieSensorsInit();
 	audioInit();                                                    
 
-/*
 	while(true)
 	{
 		audioPlay(dat, sizeof(dat));
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
-		audioPlay(dat1, sizeof(dat1));
-		vTaskDelay(10000 / portTICK_PERIOD_MS);
-	}*/
+	}
 }
 

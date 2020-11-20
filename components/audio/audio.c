@@ -7,7 +7,9 @@
 #include <esp_log.h>
 
 #define TAG "audio"
-//static const gpio_num_t AUDIO_AMP_SD_PIN = GPIO_NUM_25;
+
+// Pin corresponding to the AMP enable signal, turn on amp only when audio is going to be played
+static const gpio_num_t AUDIO_AMP_SD_PIN = GPIO_NUM_25;
 
 static xQueueHandle gQueue = NULL;
 
@@ -27,20 +29,28 @@ static void PlayTask(void *arg)
 			continue;
 		}
 
+		ESP_LOGW(TAG, "Turn ON audio amp");
+		ESP_ERROR_CHECK(gpio_set_level(AUDIO_AMP_SD_PIN, 1));
+
+		// Wait to play the audio
+		vTaskDelay(100);
+
 		ESP_LOGW(TAG, "Audio play started, lenght : %d", data.length);
 
 		size_t bytesWritten;
 		i2s_write(I2S_NUM_0, data.buffer, data.length, &bytesWritten, portMAX_DELAY);
 		i2s_zero_dma_buffer(I2S_NUM_0);
 
-		vTaskDelay(1 / portTICK_PERIOD_MS);
+		vTaskDelay(100);
+
+		ESP_LOGW(TAG, "Turn OFF audio amp");
+		ESP_ERROR_CHECK(gpio_set_level(AUDIO_AMP_SD_PIN, 0));
 	}
 }
 
 void audioInit(void)
 {
 	// Configure the amplifier shutdown signal
-/*
 	{
 		gpio_config_t gpioConfig = {};
 
@@ -48,22 +58,20 @@ void audioInit(void)
 		gpioConfig.pin_bit_mask = 1ULL << AUDIO_AMP_SD_PIN;
 
 		ESP_ERROR_CHECK(gpio_config(&gpioConfig));
-
-		gpio_set_level(AUDIO_AMP_SD_PIN, 1);
 	}
-*/
-		i2s_config_t i2sConfig= {};
 
-		i2sConfig.mode = I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
-		i2sConfig.sample_rate = 8000;
-		i2sConfig.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
-		i2sConfig.communication_format = I2S_COMM_FORMAT_I2S_MSB;
-		i2sConfig.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
-		i2sConfig.dma_buf_count = 8;
-		i2sConfig.dma_buf_len = 64;
+	i2s_config_t i2sConfig= {};
 
-		ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2sConfig, 0, NULL));
-		ESP_ERROR_CHECK(i2s_set_dac_mode(I2S_DAC_CHANNEL_LEFT_EN));
+	i2sConfig.mode = I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
+	i2sConfig.sample_rate = 8000;
+	i2sConfig.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+	i2sConfig.communication_format = I2S_COMM_FORMAT_I2S_MSB;
+	i2sConfig.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
+	i2sConfig.dma_buf_count = 8;
+	i2sConfig.dma_buf_len = 64;
+
+	ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2sConfig, 0, NULL));
+	ESP_ERROR_CHECK(i2s_set_dac_mode(I2S_DAC_CHANNEL_LEFT_EN));
 
 	// Create task for playing sounds so that our main task isn't blocked
 	{
