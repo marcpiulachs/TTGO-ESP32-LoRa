@@ -11,7 +11,7 @@
 // Pin corresponding to the AMP enable signal, turn on amp only when audio is going to be played
 static const gpio_num_t AUDIO_AMP_SD_PIN = GPIO_NUM_25;
 
-static xQueueHandle gQueue = NULL;
+static xQueueHandle audioQueue = NULL;
 
 typedef struct
 {
@@ -24,7 +24,7 @@ static void PlayTask(void *arg)
 	while(true)
 	{
 		QueueData data;
-		if (!xQueueReceive(gQueue, &data, 4000 / portTICK_RATE_MS))
+		if (!xQueueReceive(audioQueue, &data, 4000 / portTICK_RATE_MS))
 		{
 			continue;
 		}
@@ -51,19 +51,18 @@ static void PlayTask(void *arg)
 void audioInit(void)
 {
 	// Configure the amplifier shutdown signal
-	{
-		gpio_config_t gpioConfig = {};
+	gpio_config_t gpioConfig = {};
 
-		gpioConfig.mode = GPIO_MODE_OUTPUT;
-		gpioConfig.pin_bit_mask = 1ULL << AUDIO_AMP_SD_PIN;
+	gpioConfig.mode = GPIO_MODE_OUTPUT;
+	gpioConfig.pin_bit_mask = 1ULL << AUDIO_AMP_SD_PIN;
 
-		ESP_ERROR_CHECK(gpio_config(&gpioConfig));
-	}
+	ESP_ERROR_CHECK(gpio_config(&gpioConfig));
 
+	// Configure I2S to send the audio to.
 	i2s_config_t i2sConfig= {};
 
 	i2sConfig.mode = I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
-	i2sConfig.sample_rate = 8000;
+	i2sConfig.sample_rate = 22050;
 	i2sConfig.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
 	i2sConfig.communication_format = I2S_COMM_FORMAT_I2S_MSB;
 	i2sConfig.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
@@ -74,16 +73,12 @@ void audioInit(void)
 	ESP_ERROR_CHECK(i2s_set_dac_mode(I2S_DAC_CHANNEL_LEFT_EN));
 
 	// Create task for playing sounds so that our main task isn't blocked
-	{
-		gQueue = xQueueCreate(1, sizeof(QueueData));
-		assert(gQueue);
+	audioQueue = xQueueCreate(2, sizeof(QueueData));
+	assert(audioQueue);
 
-/*
-		BaseType_t result = xTaskCreatePinnedToCore(&PlayTask, "I2S Task", 1024, NULL, 5, NULL, 1);
-		assert(result == pdPASS);*/
-
-		xTaskCreate(&PlayTask, "I2S Task", 4096, NULL, 5, NULL);
-	}
+	// Create a task on the second core
+	BaseType_t result = xTaskCreatePinnedToCore(&PlayTask, "I2S Task", 4096, NULL, 5, NULL, 1);
+	assert(result == pdPASS);
 
 	ESP_LOGW(TAG, "Audio initialized.");
 }
@@ -95,12 +90,12 @@ void audioPlay(uint8_t* buffer, int length)
 	data.buffer = buffer;
 	data.length = length;
 
-	if (!uxQueueSpacesAvailable(gQueue)) {
+	if (!uxQueueSpacesAvailable(audioQueue)) {
 		ESP_LOGE(TAG, "No room in queue for audio.");
 		return;
 	}
 
 	ESP_LOGW(TAG, "Sending audio to queue.");
 
-	xQueueSendToBack(gQueue, &data, portMAX_DELAY);
+	xQueueSendToBack(audioQueue, &data, portMAX_DELAY);
 }

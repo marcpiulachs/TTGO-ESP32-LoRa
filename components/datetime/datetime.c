@@ -67,7 +67,8 @@ void dateTimeInit(void){
 
 	datetimeEventGroup = xEventGroupCreate();
 
-	xTaskCreate(&dateTimeTask, "dateTimeTask", 2048, NULL, 13, NULL);
+	BaseType_t result = xTaskCreate(&dateTimeTask, "dateTimeTask", 2048, NULL, 13, NULL);
+	assert(result == pdPASS);
 }
 
 void datTimeResetNVS(void){

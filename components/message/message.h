@@ -26,7 +26,7 @@ enum messageEndpoint_t {
 	DISPLAY
 };
 
-void messageIn(message_t * messagePointer, const char * from);
+void publish_message(message_t * messagePointer, const char * from);
 void messageNVSReset(char * from, unsigned char defaults);
 
 #endif

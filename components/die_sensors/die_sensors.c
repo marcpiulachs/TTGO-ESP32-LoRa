@@ -87,7 +87,7 @@ static void dieSensorsTemperatureTask(void * arg){
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
 
-		messageIn(&message, ROUTE_NAME);
+		publish_message(&message, ROUTE_NAME);
 	}
 
 	nvs_close(nvsHandle);
@@ -126,7 +126,7 @@ static void dieSensorsHallEffectTask(void * arg){
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
 
-		messageIn(&message, ROUTE_NAME);
+		publish_message(&message, ROUTE_NAME);
 	}
 
 	nvs_close(nvsHandle);
@@ -169,7 +169,7 @@ static void dieSensorsBatteryVoltageTask(void * arg){
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
 
-		messageIn(&message, ROUTE_NAME);
+		publish_message(&message, ROUTE_NAME);
 	}
 
 	nvs_close(nvsHandle);
@@ -214,7 +214,7 @@ static void wiFiSignalStrenghtTask(void * arg){
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
 
-		messageIn(&message, ROUTE_NAME);
+		publish_message(&message, ROUTE_NAME);
 	}
 
 	nvs_close(nvsHandle);
@@ -241,10 +241,19 @@ void dieSensorsInit(void) {
     	ESP_LOGW(TAG, "ADC Default will be used");
     }
 
-	xTaskCreate(&dieSensorsTemperatureTask, "dieSensorsTemp", 4096, NULL, 10, NULL);
-	xTaskCreate(&dieSensorsHallEffectTask, "dieSensorsHall", 4096, NULL, 10, NULL);
-	xTaskCreate(&dieSensorsBatteryVoltageTask, "dieSensorsBattyV", 4096, NULL, 10, NULL);
-	xTaskCreate(&wiFiSignalStrenghtTask, "wifiRSSI", 4096, NULL, 10, NULL);
+	BaseType_t result;
+	
+	result = xTaskCreate(&dieSensorsTemperatureTask, "dieSensorsTemp", 4096, NULL, 10, NULL);
+	assert(result == pdPASS);
+	
+	result = xTaskCreate(&dieSensorsHallEffectTask, "dieSensorsHall", 4096, NULL, 10, NULL);
+	assert(result == pdPASS);
+	
+	result = xTaskCreate(&dieSensorsBatteryVoltageTask, "dieSensorsBattyV", 4096, NULL, 10, NULL);
+	assert(result == pdPASS);
+	
+	result = xTaskCreate(&wiFiSignalStrenghtTask, "wifiRSSI", 4096, NULL, 10, NULL);
+	assert(result == pdPASS);
 }
 
 void dieSensorsResetNVS(void) {
@@ -253,7 +262,6 @@ void dieSensorsResetNVS(void) {
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "dieSensEn", 0x00));
-
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "delayTemp", 4000));
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "delayHall", 4000));
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "delayBattV", 4000));

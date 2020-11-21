@@ -22,8 +22,6 @@ void wifiClientInit(void) {
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
 
-
-
     nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
@@ -35,10 +33,10 @@ void wifiClientInit(void) {
     nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
     nvs_get_str(nvsHandle, "wifiPassword", (char *) wifi_config.sta.password, &nvsLength);
 
-		ESP_LOGW(TAG, "Conecting to SSID : '%s' with password : '%s'", 
-			wifi_config.sta.ssid,
-			wifi_config.sta.password);
-    	
+	ESP_LOGW(TAG, "Conecting to SSID : '%s' with password : '%s'", 
+		wifi_config.sta.ssid,
+		wifi_config.sta.password);
+
     nvs_close(nvsHandle);
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));

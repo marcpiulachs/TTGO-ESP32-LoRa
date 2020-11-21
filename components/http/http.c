@@ -398,6 +398,10 @@ esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fil
 }
 
 void stop_webserver(httpd_handle_t server) {
+
+	// Stop the httpd server
+    ESP_LOGI(TAG, "Stopping httpd server");
+
     // Stop the httpd server
     httpd_stop(server);
 }
@@ -408,14 +412,14 @@ static httpd_handle_t start_webserver(void) {
 	wifiUsed();
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.stack_size = 8192;
-
+    
+	config.stack_size = 8192;
     config.max_uri_handlers = 32;
 
     // Start the httpd server
-    ESP_LOGI(TAG, "Starting server on port: %d", config.server_port);
-    httpd_handle_t server;
+    ESP_LOGI(TAG, "Starting httpd server on port: %d", config.server_port);
 
+    httpd_handle_t server;
     if (httpd_start(&server, &config) == ESP_OK) 
 	{    
 		// Set URI handlers
@@ -475,6 +479,8 @@ static void httpServerTask(void *arg){
     return;
 }
 
-void httpServerInit(){
-	xTaskCreate(&httpServerTask, "http", 8192, NULL, 12, NULL);
+void httpServerInit()
+{
+	BaseType_t result = xTaskCreate(&httpServerTask, "http", 8192, NULL, 12, NULL);
+	assert(result == pdPASS);
 }

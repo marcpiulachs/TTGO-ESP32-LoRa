@@ -10,7 +10,7 @@
 
 unsigned char disaplyLine = 0;
 
-void messageIn(message_t * messagePointer, const char * from){
+void publish_message(message_t * messagePointer, const char * from){
 
 	char valueString[sizeof(messagePointer->stringValue)] = {0};
 

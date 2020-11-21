@@ -11,6 +11,7 @@
 // #include "http.h"
 #include "mqtt_connection.h"
 #include "message.h"
+#include "valve.h"
 
 static esp_mqtt_client_handle_t client;
 static esp_mqtt_client_config_t mqtt_cfg;
@@ -136,10 +137,12 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event)
 
             if (strcmp(topic, mqttValve1Topic) == 0) {
                 if (strcmp(data, "OPEN") == 0) {
-                    ESP_LOGI(TAG, "Valve1 open requested");
+                    ESP_LOGI(TAG, "Valve OPEN requested");
+					//open_valve();
                 }
 				else{
-					ESP_LOGI(TAG, "Valve1 close requested");
+					ESP_LOGI(TAG, "Valve CLOSE requested");
+					//close_valve();
 				}
             } else if (strcmp(topic, mqttValve2Topic) == 0) {
                 if (strcmp(data, "OPEN") == 0) {
@@ -277,10 +280,8 @@ static void mqttConnectionTask(void *arg){
 			break;
 		}
 
-		int msg_id;
-		msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
-
 		ESP_LOGI(TAG, "Publishing MQTT message to broker");
+		int msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
 		ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
 		ESP_LOGI(TAG, "Sent publish successful, msg_id=%d", msg_id);
 	}
@@ -301,6 +302,7 @@ void mqttConnectionInit(void){
 	mqttConnectionEventGroup = xEventGroupCreate();
 
 	mqttConnectionQueue = xQueueCreate(10, sizeof(message_t));
+	assert(mqttConnectionQueue);
 
 	xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 13, NULL);
 

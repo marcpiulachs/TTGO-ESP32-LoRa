@@ -21,7 +21,7 @@
 //#include "radio.h"
 #include "audio.h"
 #include "sounds.h"
-#include <driver/i2s.h>
+#include "valve.h"
 // #include "os.h"
 // #include "sys/param.h"
 // #include "crypto/base64.h"
@@ -140,11 +140,12 @@ void app_main(void)
     	ESP_ERROR_CHECK( esp_pm_configure(&pm_config) );
 	#endif // CONFIG_PM_ENABLE
 
+	valveInit();
     dateTimeInit();
     httpServerInit();
     mqttConnectionInit();
     dieSensorsInit();
-	audioInit();                                                    
+	audioInit();                                                  
 
 	while(true)
 	{
