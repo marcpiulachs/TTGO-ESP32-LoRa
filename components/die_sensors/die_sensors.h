@@ -7,6 +7,9 @@ enum dieSensors_t {
 	BATTERY_VOLTAGE,
 };
 
+void publish_battery_stat();
+void publish_rssi_stat();
+
 void dieSensorsInit(void);
 void dieSensorsResetNVS(void);
 

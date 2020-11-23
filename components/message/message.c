@@ -10,60 +10,39 @@
 
 unsigned char disaplyLine = 0;
 
-void publish_message(message_t * messagePointer, const char * from){
-
+void publish_message(message_t * messagePointer)
+{
 	char valueString[sizeof(messagePointer->stringValue)] = {0};
 
 	switch (messagePointer->valueType){
 
 		case MESSAGE_INT:
-			sprintf(valueString, "%d", messagePointer->intValue);
+			sprintf(messagePointer->stringValue, "%d", messagePointer->intValue);
 		break;
 
 		case MESSAGE_FLOAT:
-			sprintf(valueString, "%.4f", messagePointer->floatValue);
+			sprintf(messagePointer->stringValue, "%.4f", messagePointer->floatValue);
 		break;
 
 		case MESSAGE_DOUBLE:
-			sprintf(valueString, "%.8f", messagePointer->doubleValue);
+			sprintf(messagePointer->stringValue, "%.8f", messagePointer->doubleValue);
 		break;
-
-		case MESSAGE_STRING:
-			sprintf(valueString, "%s", messagePointer->stringValue);
-		break;
-	}
-
-	ESP_LOGI(TAG, "Message From %s: deviceName=%s, sensorName=%s, valueType=%d, value=%s",
-		from,
-		messagePointer->deviceName,
-		messagePointer->sensorName,
-		messagePointer->valueType,
-		valueString
-	);
-
 /*
-	disaplyLine++;
-	if (disaplyLine > 8){
-		disaplyLine = 0;
+		case MESSAGE_STRING:
+			sprintf(messagePointer->stringValue, "%s", messagePointer->stringValue);
+		break;*/
 	}
 
-	ssd1306Text_t ssd1306Text;
-	ssd1306Text.line = disaplyLine;
-
-	strcpy(ssd1306Text.text, messagePointer->deviceName);
-	strcat(ssd1306Text.text, " / ");
-	strcat(ssd1306Text.text, messagePointer->sensorName);
-	strcat(ssd1306Text.text, " = ");
-	strcat(ssd1306Text.text, valueString);
-
-	ssd1306QueueText(&ssd1306Text);
-*/
+	ESP_LOGI(TAG, "Message : topic=%d, valueType=%d, value=%s",
+		messagePointer->topicType,
+		messagePointer->valueType,
+		messagePointer->stringValue
+	);
 
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
 	char handle[32];
-	strcpy(handle, from);
 	strcat(handle, "InRt");
 
 	unsigned char routing;
@@ -71,9 +50,13 @@ void publish_message(message_t * messagePointer, const char * from){
 
 	nvs_close(nvsHandle);
 
+	ESP_LOGI(TAG, "Forwarding to MQTT");
+	mqttConnectionQueueAdd(messagePointer);
+
+/*
 	if ((routing >> LORA) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to LoRa");
-//		radioLoRaQueueAdd(messagePointer);
+		radioLoRaQueueAdd(messagePointer);
 	}
 
 	if ((routing >> MQTT) & 0x01){
@@ -83,13 +66,13 @@ void publish_message(message_t * messagePointer, const char * from){
 
 	if ((routing >> ELASTICSEARCH) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to Elasticsearch");
-//		elasticQueueAdd(messagePointer);
+		elasticQueueAdd(messagePointer);
 	}
 
 	if ((routing >> DISPLAY) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to Display");
-//		displayQueueAdd(messagePointer);
-	}
+		displayQueueAdd(messagePointer);
+	}*/
 
 }
 

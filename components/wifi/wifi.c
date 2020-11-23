@@ -73,23 +73,15 @@ void wifiUsed(void){
 	// ESP_LOGW(TAG, "WiFi Idle Timer Reset");
 }
 
-static void wifiGotIP(const ip4_addr_t *addr){
-
+static void wifiGotIP(const ip4_addr_t *addr)
+{
 	message_t message;
 	message.valueType = MESSAGE_STRING;
+	message.topicType = WIFI_STAT;
 
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
-
-	size_t nvsLength = sizeof(message.deviceName);
-	nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
-
-	nvs_close(nvsHandle);
-
-	strcpy(message.sensorName, "wifiIp");
 	strcpy(message.stringValue, ip4addr_ntoa(addr));
 
-	publish_message(&message, ROUTE_NAME);
+	publish_message(&message);
 }
 
 static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){

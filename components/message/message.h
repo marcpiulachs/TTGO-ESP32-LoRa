@@ -1,7 +1,8 @@
 #ifndef __MESSAGE_QUEUE_H_
 #define __MESSAGE_QUEUE_H_
 
-enum messageType_t {
+enum messageType_t 
+{
 	MESSAGE_INT,
 	MESSAGE_FLOAT,
 	MESSAGE_DOUBLE,
@@ -9,11 +10,21 @@ enum messageType_t {
 	MESSAGE_INTERRUPT
 };
 
+enum messageTopic_t
+{
+	BATTERY_STAT,
+	RSSI_STAT,
+	VALVE1_STAT,
+	VALVE2_STAT,
+	WIFI_STAT
+};
+
 typedef struct{
 	char deviceName[16];
 	char sensorName[16];
 	int valueType;
 	int intValue;
+	int topicType;
 	float floatValue;
 	double doubleValue;
 	char stringValue[32];
@@ -26,7 +37,7 @@ enum messageEndpoint_t {
 	DISPLAY
 };
 
-void publish_message(message_t * messagePointer, const char * from);
+void publish_message(message_t * messagePointer);
 void messageNVSReset(char * from, unsigned char defaults);
 
 #endif

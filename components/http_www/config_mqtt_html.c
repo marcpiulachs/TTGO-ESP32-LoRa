@@ -9,12 +9,7 @@ static const ssiTag_t ssiTags[] = {
 	{"mqttKeepalive",	SSI_TYPE_INTEGER},
 	{"mqttUsername", 	SSI_TYPE_TEXT},
 	{"mqttPassword", 	SSI_TYPE_PASSWORD},
-	{"mqttInRt>>0",		SSI_TYPE_CHECKBOX},
-	{"mqttInRt>>1",		SSI_TYPE_CHECKBOX},
-	{"mqttInRt>>2",		SSI_TYPE_CHECKBOX},
-	{"mqttInRt>>3",		SSI_TYPE_CHECKBOX},
 	{"mqttOutTopic",	SSI_TYPE_TEXT},
-	{"mqttInTopic",		SSI_TYPE_TEXT},
 };
 
 static esp_err_t handler(httpd_req_t *req) {

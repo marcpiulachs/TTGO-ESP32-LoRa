@@ -98,12 +98,10 @@ void app_main(void)
 
     vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-    int configMode = 0;
+    int configMode = !gpio_get_level(0);
 
-    configMode = !gpio_get_level(0);
-
-    if (configMode){
-
+    if (configMode)
+	{
     	ESP_LOGW(TAG, "Starting in config mode. Reseting all values to factory defaults.");
 
     	// Reset all NVS data so we always get known values and don't crash
@@ -125,7 +123,7 @@ void app_main(void)
 		/* Starting up as a network client device */
 		wifiClientInit();
     }
-
+	
     #if CONFIG_PM_ENABLE
 	    // Configure dynamic frequency scaling:
 	    // maximum and minimum frequencies are set in sdkconfig,
@@ -147,10 +145,11 @@ void app_main(void)
     dieSensorsInit();
 	audioInit();                                                  
 
+/*
 	while(true)
 	{
 		audioPlay(dat, sizeof(dat));
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
-	}
+	}*/
 }
 

@@ -60,6 +60,7 @@ static void dieSensorsTemperatureTask(void * arg){
 
 	message_t message;
 	message.valueType = MESSAGE_FLOAT;
+	message.topicType = BATTERY_STAT;
 	strcpy(message.sensorName, "DieTemp");
 
 	size_t nvsLength;
@@ -87,7 +88,7 @@ static void dieSensorsTemperatureTask(void * arg){
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
 
-		publish_message(&message, ROUTE_NAME);
+		publish_message(&message);
 	}
 
 	nvs_close(nvsHandle);
@@ -99,6 +100,7 @@ static void dieSensorsHallEffectTask(void * arg){
 
 	message_t message;
 	message.valueType = MESSAGE_FLOAT;
+	message.topicType = BATTERY_STAT;
 	strcpy(message.sensorName, "Hall");
 
 	size_t nvsLength;
@@ -126,7 +128,7 @@ static void dieSensorsHallEffectTask(void * arg){
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
 
-		publish_message(&message, ROUTE_NAME);
+		publish_message(&message);
 	}
 
 	nvs_close(nvsHandle);
@@ -134,92 +136,100 @@ static void dieSensorsHallEffectTask(void * arg){
 	vTaskDelete(NULL);
 }
 
-static void dieSensorsBatteryVoltageTask(void * arg){
+static void dieSensorsBatteryVoltageTask(void * arg)
+{
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
+	unsigned char dieSensEn;
+	unsigned int delay;
+
+	for(;;)
+	{
+		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
+
+		if (!((dieSensEn >> BATTERY_VOLTAGE) & 0x01)) {
+			vTaskDelay(4000 / portTICK_RATE_MS);
+			continue;
+		}
+
+		nvs_get_u32(nvsHandle, "delayBattV", &delay);
+
+		vTaskDelay(delay / portTICK_RATE_MS);
+
+		publish_battery_stat();
+	}
+
+	nvs_close(nvsHandle);
+
+	vTaskDelete(NULL);
+}
+
+static void wiFiSignalStrenghtTask(void * arg)
+{
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	unsigned char dieSensEn;
+	unsigned int delay;
+
+	for(;;)
+	{
+		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
+
+		if (!((dieSensEn >> BATTERY_VOLTAGE) & 0x01)) {
+			vTaskDelay(4000 / portTICK_RATE_MS);
+			continue;
+		}
+
+		nvs_get_u32(nvsHandle, "delayBattV", &delay);
+
+		vTaskDelay(delay / portTICK_RATE_MS);
+
+		publish_rssi_stat();
+	}
+
+	nvs_close(nvsHandle);
+
+	vTaskDelete(NULL);
+}
+
+void publish_battery_stat(void)
+{
 	message_t message;
 	message.valueType = MESSAGE_FLOAT;
-	strcpy(message.sensorName, "battery");
+	message.topicType = BATTERY_STAT;
 
-	size_t nvsLength;
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+	ESP_LOGI(TAG, "Measuring Battery voltage");
 
-	unsigned char dieSensEn;
-	unsigned int delay;
+	adc1_config_width(ADC_WIDTH_BIT_12);
+	adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
+	
+	message.floatValue = dieSensorsReadADC(ADC1_CHANNEL_0) * 2;
 
-	while(1) {
+	ESP_LOGI(TAG,"Battery Voltage: %.4f\r\n", message.floatValue);
 
-		ESP_LOGI(TAG, "Battery");
-
-		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
-
-		if (!((dieSensEn >> BATTERY_VOLTAGE) & 0x01)) {
-			vTaskDelay(4000 / portTICK_RATE_MS);
-			continue;
-		}
-
-		nvs_get_u32(nvsHandle, "delayBattV", &delay);
-
-		vTaskDelay(delay / portTICK_RATE_MS);
-
-		adc1_config_width(ADC_WIDTH_BIT_12);
-		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
-		message.floatValue = dieSensorsReadADC(ADC1_CHANNEL_0) * 2;
-
-		nvsLength = sizeof(message.deviceName);
-		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
-
-		publish_message(&message, ROUTE_NAME);
-	}
-
-	nvs_close(nvsHandle);
-
-	vTaskDelete(NULL);
+	publish_message(&message);
 }
 
-static void wiFiSignalStrenghtTask(void * arg){
-
+void publish_rssi_stat(void)
+{
 	message_t message;
 	message.valueType = MESSAGE_INT;
-	strcpy(message.sensorName, "RSSI");
+	message.topicType = RSSI_STAT;
 
-	size_t nvsLength;
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+	ESP_LOGI(TAG, "Measuring WiFI signal strenght");
 
-	unsigned char dieSensEn;
-	unsigned int delay;
-
-	while(1) {
-
-		ESP_LOGI(TAG, "WiFI signal strenght");
-
-		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
-
-		if (!((dieSensEn >> BATTERY_VOLTAGE) & 0x01)) {
-			vTaskDelay(4000 / portTICK_RATE_MS);
-			continue;
-		}
-
-		nvs_get_u32(nvsHandle, "delayBattV", &delay);
-
-		vTaskDelay(delay / portTICK_RATE_MS);
-
-		wifi_ap_record_t wifidata;
-		if (esp_wifi_sta_get_ap_info(&wifidata)==0){
-			ESP_LOGI(TAG,"WiFi RSSI:%d\r\n", wifidata.rssi);
-			message.intValue = wifidata.rssi;
-		}
-
-		nvsLength = sizeof(message.deviceName);
-		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
-
-		publish_message(&message, ROUTE_NAME);
+	wifi_ap_record_t wifidata;
+	if (esp_wifi_sta_get_ap_info(&wifidata) == 0)
+	{
+		ESP_LOGI(TAG,"WiFi RSSI: %d dBm\r\n", wifidata.rssi);
+		message.intValue = wifidata.rssi;
+		publish_message(&message);
 	}
-
-	nvs_close(nvsHandle);
-
-	vTaskDelete(NULL);
+	else{
+		ESP_LOGE(TAG,"Could not get WiFi RSSI");
+	}
 }
 
 void dieSensorsInit(void) {
@@ -242,13 +252,13 @@ void dieSensorsInit(void) {
     }
 
 	BaseType_t result;
-	
+	/*
 	result = xTaskCreate(&dieSensorsTemperatureTask, "dieSensorsTemp", 4096, NULL, 10, NULL);
 	assert(result == pdPASS);
 	
 	result = xTaskCreate(&dieSensorsHallEffectTask, "dieSensorsHall", 4096, NULL, 10, NULL);
 	assert(result == pdPASS);
-	
+	*/
 	result = xTaskCreate(&dieSensorsBatteryVoltageTask, "dieSensorsBattyV", 4096, NULL, 10, NULL);
 	assert(result == pdPASS);
 	

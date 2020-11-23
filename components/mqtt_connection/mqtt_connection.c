@@ -12,6 +12,7 @@
 #include "mqtt_connection.h"
 #include "message.h"
 #include "valve.h"
+#include "die_sensors.h"
 
 static esp_mqtt_client_handle_t client;
 static esp_mqtt_client_config_t mqtt_cfg;
@@ -22,40 +23,30 @@ static EventGroupHandle_t mqttConnectionEventGroup;
 
 static const char *TAG = "MQTT";
 
-static const char * ROUTE_NAME = "mqtt";
+//static const char * ROUTE_NAME = "mqtt";
 
 char deviceName[16] = {0};
-char mqttInTopic[64];
 
-char mqttValve1Topic[64] = {0};
-char mqttValve2Topic[64] = {0};
+char mqttOutTopic[64] = {0};
 
-void mqttConnectionLoadValues (void)
-{
-	size_t nvsLength;
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+char mqttValve1CmndTopic[64] = {0};
+char mqttValve1StatTopic[64] = {0};
+char mqttValve1TeleTopic[64] = {0};
 
-	nvsLength = sizeof(deviceName);
-	ESP_ERROR_CHECK(nvs_get_str(nvsHandle, "uniqueName", deviceName, &nvsLength));
+char mqttValve2CmndTopic[64] = {0};
+char mqttValve2StatTopic[64] = {0};
+char mqttValve2TeleTopic[64] = {0};
 
-/*
-	nvsLength = sizeof(mqttInTopic);
-	ESP_ERROR_CHECK(nvs_get_str(nvsHandle, "mqttInTopic", mqttInTopic, &nvsLength));
-*/
+char mqttRSSIStatTopic[64] = {0};
+char mqttRSSITeleTopic[64] = {0};
 
-	nvs_close(nvsHandle);
+char mqttBatteryStatTopic[64] = {0};
+char mqttBatteryTeleTopic[64] = {0};
 
-	strcpy(mqttValve1Topic, "/");
-	strcat(mqttValve1Topic, deviceName);
-	strcat(mqttValve1Topic, "/valve1");
+char mqttWifiStatTopic[64] = {0};
+char mqttWifiTeleTopic[64] = {0};
 
-	strcpy(mqttValve2Topic, "/");
-	strcat(mqttValve2Topic, deviceName);
-	strcat(mqttValve2Topic, "/valve2");
-}
-
-static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) 
+static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) 
 {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
@@ -66,14 +57,33 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event)
         case MQTT_EVENT_CONNECTED:
         	xEventGroupSetBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT);
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-			mqttConnectionLoadValues();
-
-			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve1Topic);
-            msg_id = esp_mqtt_client_subscribe(client, mqttValve1Topic, 0);
+			
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve1CmndTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttValve1CmndTopic, 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
-			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve2Topic);
-            msg_id = esp_mqtt_client_subscribe(client, mqttValve2Topic, 0);
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve1StatTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttValve1StatTopic, 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve2CmndTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttValve2CmndTopic, 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttValve2StatTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttValve2StatTopic, 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttRSSIStatTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttRSSIStatTopic, 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttBatteryStatTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttBatteryStatTopic, 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttWifiStatTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttWifiStatTopic, 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
 			/*
@@ -125,6 +135,8 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event)
 			printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
 			printf("DATA=%.*s\r\n", event->data_len, event->data);			
 
+			// Make safe copies, then call business logic handler
+
             // Get the topic name
             char *topic = malloc(event->topic_len + 1);
             memcpy(topic, event->topic, event->topic_len);
@@ -135,23 +147,8 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event)
             memcpy(data, event->data, event->data_len);
             data[event->data_len] = '\0';
 
-            if (strcmp(topic, mqttValve1Topic) == 0) {
-                if (strcmp(data, "OPEN") == 0) {
-                    ESP_LOGI(TAG, "Valve OPEN requested");
-					//open_valve();
-                }
-				else{
-					ESP_LOGI(TAG, "Valve CLOSE requested");
-					//close_valve();
-				}
-            } else if (strcmp(topic, mqttValve2Topic) == 0) {
-                if (strcmp(data, "OPEN") == 0) {
-                    ESP_LOGI(TAG, "Valve1 open requested");
-                }
-				else{
-					ESP_LOGI(TAG, "Valve1 close requested");
-				}
-			}
+    		// Handle it already
+    		handle_mqtt_event_data(topic, data);
 
  			free(topic);
             free(data);
@@ -167,6 +164,141 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event)
 			break;
     }
     return ESP_OK;
+}
+
+void replace_topic_token(char *str, char *orig, char *rep, char *result)
+{
+  static char buffer[64];
+  char *p;
+
+  if(!(p = strstr(str, orig)))  // Is 'orig' even in 'str'?
+    strcpy(result, str);
+
+  strncpy(buffer, str, p-str); // Copy characters from 'str' start to 'orig' st$
+  buffer[p-str] = '\0';
+
+  sprintf(buffer+(p-str), "%s%s", rep, p+strlen(orig));
+
+  strcpy(result, buffer);
+}
+
+void init_topic_routes (void)
+{
+	size_t nvsLength;
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	nvsLength = sizeof(deviceName);
+	ESP_ERROR_CHECK(nvs_get_str(nvsHandle, "uniqueName", deviceName, &nvsLength));
+
+	nvsLength = sizeof(mqttValve1CmndTopic);
+	ESP_ERROR_CHECK(nvs_get_str(nvsHandle, "mqttOutTopic", mqttOutTopic, &nvsLength));
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttValve1CmndTopic);
+	replace_topic_token(mqttValve1CmndTopic, "{topic}", "valve1", mqttValve1CmndTopic);
+	replace_topic_token(mqttValve1CmndTopic, "{prefix}", "cmnd", mqttValve1CmndTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttValve1StatTopic);
+	replace_topic_token(mqttValve1StatTopic, "{topic}", "valve1", mqttValve1StatTopic);
+	replace_topic_token(mqttValve1StatTopic, "{prefix}", "stat", mqttValve1StatTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttValve1TeleTopic);
+	replace_topic_token(mqttValve1TeleTopic, "{topic}", "valve1", mqttValve1TeleTopic);
+	replace_topic_token(mqttValve1TeleTopic, "{prefix}", "tele", mqttValve1TeleTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttValve2CmndTopic);
+	replace_topic_token(mqttValve2CmndTopic, "{topic}", "valve2", mqttValve2CmndTopic);
+	replace_topic_token(mqttValve2CmndTopic, "{prefix}", "cmnd", mqttValve2CmndTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttValve2StatTopic);
+	replace_topic_token(mqttValve2StatTopic, "{topic}", "valve2", mqttValve2StatTopic);
+	replace_topic_token(mqttValve2StatTopic, "{prefix}", "stat", mqttValve2StatTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttValve2TeleTopic);
+	replace_topic_token(mqttValve2TeleTopic, "{topic}", "valve2", mqttValve2TeleTopic);
+	replace_topic_token(mqttValve2TeleTopic, "{prefix}", "tele", mqttValve2TeleTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttRSSIStatTopic);
+	replace_topic_token(mqttRSSIStatTopic, "{topic}", "rssi", mqttRSSIStatTopic);
+	replace_topic_token(mqttRSSIStatTopic, "{prefix}", "stat", mqttRSSIStatTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttRSSITeleTopic);
+	replace_topic_token(mqttRSSITeleTopic, "{topic}", "rssi", mqttRSSITeleTopic);
+	replace_topic_token(mqttRSSITeleTopic, "{prefix}", "tele", mqttRSSITeleTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttBatteryStatTopic);
+	replace_topic_token(mqttBatteryStatTopic, "{topic}", "battery", mqttBatteryStatTopic);
+	replace_topic_token(mqttBatteryStatTopic, "{prefix}", "stat", mqttBatteryStatTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttBatteryTeleTopic);
+	replace_topic_token(mqttBatteryTeleTopic, "{topic}", "battery", mqttBatteryTeleTopic);
+	replace_topic_token(mqttBatteryTeleTopic, "{prefix}", "tele", mqttBatteryTeleTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttWifiStatTopic);
+	replace_topic_token(mqttWifiStatTopic, "{topic}", "wifi", mqttWifiStatTopic);
+	replace_topic_token(mqttWifiStatTopic, "{prefix}", "stat", mqttWifiStatTopic);
+
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttWifiTeleTopic);
+	replace_topic_token(mqttWifiTeleTopic, "{topic}", "wifi", mqttWifiTeleTopic);
+	replace_topic_token(mqttWifiTeleTopic, "{prefix}", "tele", mqttWifiTeleTopic);	
+
+	nvs_close(nvsHandle);
+}
+
+/*
+ * MQTT : Handle business logic
+ */
+void handle_mqtt_event_data(char *topic, char *payload) 
+{
+	if (strcmp(topic, mqttValve1CmndTopic) == 0) 
+	{
+		if (strcmp(payload, "OPEN") == 0) 
+		{
+			ESP_LOGI(TAG, "Valve[1] OPEN requested");
+			open_valve1();
+		}
+		else{
+			ESP_LOGI(TAG, "Valve[1] CLOSE requested");
+			close_valve1();
+		}
+	} 
+	else if (strcmp(topic, mqttValve2CmndTopic) == 0) 
+	{
+		if (strcmp(payload, "OPEN") == 0) 
+		{
+			ESP_LOGI(TAG, "Valve[2] OPEN requested");
+			open_valve2();
+		}
+		else{
+			ESP_LOGI(TAG, "Valve[2] CLOSE requested");
+			close_valve2();
+		}
+	}
+	else if (strcmp(topic, mqttValve1StatTopic) == 0) 
+	{
+		ESP_LOGI(TAG, "Valve[1] STAT requested");
+		publish_valve1_stat();
+	}
+	else if (strcmp(topic, mqttValve2StatTopic) == 0) 
+	{
+		ESP_LOGI(TAG, "Valve[2] STAT requested");
+		publish_valve2_stat();
+	}
+	else if (strcmp(topic, mqttBatteryStatTopic) == 0) 
+	{
+		ESP_LOGI(TAG, "Battery STAT requested");
+		publish_battery_stat();		
+	}
+	else if (strcmp(topic, mqttRSSIStatTopic) == 0) 
+	{
+		ESP_LOGI(TAG, "RSSI STAT requested");
+		publish_rssi_stat();		
+	}
+	else if (strcmp(topic, mqttWifiStatTopic) == 0) 
+	{
+		ESP_LOGI(TAG, "WiFi STAT requested");
+		//publish_wifi_stat();		
+	}	
 }
 
 void mqttConnectionSetClient(void){
@@ -208,10 +340,10 @@ void mqttConnectionSetClient(void){
     mqtt_cfg.username = username;
     mqtt_cfg.password = password;
     mqtt_cfg.keepalive = keepalive;
-    mqtt_cfg.event_handle = mqttConnectionEventHandler;
+    mqtt_cfg.event_handle = mqtt_event_handler;
     // mqtt_cfg.user_context = (void *)your_context;
 
-    ESP_LOGI(TAG, "Connecting...\n");
+    ESP_LOGI(TAG, "Connecting to %s ...\n", host);
 
     client = esp_mqtt_client_init(&mqtt_cfg);
 }
@@ -254,31 +386,28 @@ static void mqttConnectionTask(void *arg){
 			continue;
 		}
 
-		char mqttTopic[64] = {0};
-		char mqttValue[64] = {0};
-		strcat(mqttTopic, "/");
-		strcat(mqttTopic, message.deviceName);
-		strcat(mqttTopic, "/");
-		strcat(mqttTopic, message.sensorName);
-
-		switch (message.valueType)
+		char mqttTopic[64];
+		char mqttValue[64];
+		switch(message.topicType)
 		{
-			case MESSAGE_INT:
-				sprintf(mqttValue, "%d", message.intValue);
-			break;
-
-			case MESSAGE_FLOAT:
-				sprintf(mqttValue, "%.4f", message.floatValue);
-			break;
-
-			case MESSAGE_DOUBLE:
-				sprintf(mqttValue, "%.8f", message.doubleValue);
-			break;
-
-			case MESSAGE_STRING:
-				sprintf(mqttValue, "%s", message.stringValue);
-			break;
+			case BATTERY_STAT:
+				strcpy(mqttTopic, mqttBatteryTeleTopic);
+				break;
+			case RSSI_STAT:
+				strcpy(mqttTopic, mqttRSSITeleTopic);
+				break;			
+			case VALVE1_STAT:
+				strcpy(mqttTopic, mqttValve1TeleTopic);
+				break;			
+			case VALVE2_STAT:
+				strcpy(mqttTopic, mqttValve2TeleTopic);
+				break;
+			case WIFI_STAT:
+				strcpy(mqttTopic, mqttWifiTeleTopic);
+				break;							
 		}
+
+		strcpy(mqttValue, message.stringValue);
 
 		ESP_LOGI(TAG, "Publishing MQTT message to broker");
 		int msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
@@ -297,14 +426,17 @@ void mqttConnectionQueueAdd(message_t * message) {
 	xQueueSend(mqttConnectionQueue, message, 0);
 }
 
-void mqttConnectionInit(void){
-
+void mqttConnectionInit(void)
+{
 	mqttConnectionEventGroup = xEventGroupCreate();
 
 	mqttConnectionQueue = xQueueCreate(10, sizeof(message_t));
 	assert(mqttConnectionQueue);
 
-	xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 13, NULL);
+	BaseType_t result = xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 13, NULL);
+	assert(result == pdPASS);
+
+	init_topic_routes();
 
 	wifiUsed();
 }
@@ -320,8 +452,7 @@ void mqttConnectionResetNVS(void)
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttUsername", "Username"));
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttPassword", "Password"));
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "mqttKeepalive", 30));
-	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttOutTopic", "/beeline/out/#"));
-	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttInTopic", "/beeline/in"));
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttOutTopic", "/hdo/{device}/{topic}/{prefix}"));
 
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
