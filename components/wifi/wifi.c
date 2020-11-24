@@ -6,11 +6,9 @@
 #include "mqtt_connection.h"
 #include "message.h"
 
-#define TAG "WiFi"
+static const char *TAG = "WiFi";
 
 #define IDLE_CONFIG_BIT 0
-
-static const char * ROUTE_NAME = "wifi";
 
 static EventGroupHandle_t wifiEventGroup;
 static char wifiEnabled = 0;
@@ -20,8 +18,8 @@ EventGroupHandle_t wifiGetEventGroup(void){
 	return wifiEventGroup;
 }
 
-int wifiIdleDisconnectEnabled(void){
-
+int wifiIdleDisconnectEnabled(void)
+{
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
@@ -33,8 +31,8 @@ int wifiIdleDisconnectEnabled(void){
 	return (idleDisable >> IDLE_CONFIG_BIT) & 0x01;
 }
 
-void wifiIdleTimeout( TimerHandle_t xTimer ){
-
+void wifiIdleTimeout( TimerHandle_t xTimer )
+{
 	if (wifiEnabled){
 
 		ESP_LOGW(TAG, "WiFi idle timer triggered.");
@@ -53,13 +51,15 @@ void wifiIdleTimeout( TimerHandle_t xTimer ){
 	}
 }
 
-void wifiUsed(void){
-
+void wifi_used(void)
+{
 	if (xTimerReset(idleTimer, 0) != pdPASS) {
 		ESP_LOGE(TAG, "Timer reset error");
 	}
 
-	if (!wifiEnabled){
+	if (!wifiEnabled)
+	{
+   		ESP_LOGW(TAG, "WiFi desconected, enabling it");
 
 		ESP_ERROR_CHECK(esp_wifi_start());
 
@@ -84,10 +84,25 @@ static void wifiGotIP(const ip4_addr_t *addr)
 	publish_message(&message);
 }
 
-static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){
+void publish_wifi_stat (void)
+{
+	message_t message;
+	message.valueType = MESSAGE_STRING;
+	message.topicType = WIFI_STAT;
 
-	switch(event->event_id) {
+	esp_netif_ip_info_t ip_info;
+    	
+	// IP address.
+	ESP_ERROR_CHECK(esp_netif_get_ip_info(IP_EVENT_STA_GOT_IP, &ip_info));
+	strcpy(message.stringValue, ip4addr_ntoa(&ip_info.ip.addr));
 
+	publish_message(&message);
+}
+
+static esp_err_t wifiEventHandler(void *ctx, system_event_t *event)
+{
+	switch(event->event_id) 
+	{
 		case SYSTEM_EVENT_STA_START:
 			ESP_LOGI(TAG, "SYSTEM_EVENT_STA_START");
 			esp_wifi_connect();
@@ -102,7 +117,9 @@ static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){
         case SYSTEM_EVENT_STA_DISCONNECTED:
         	ESP_LOGI(TAG, "SYSTEM_EVENT_STA_DISCONNECTED");
 			system_event_sta_disconnected_t *disconnected = &event->event_info.disconnected;
-			ESP_LOGE(TAG, "ssid:%s, ssid_len:%d, bssid:" MACSTR ", reason:%d", disconnected->ssid, disconnected->ssid_len, MAC2STR(disconnected->bssid), disconnected->reason);
+			ESP_LOGE(TAG, "SSID: '%s', reason: %d", 
+				disconnected->ssid,
+				disconnected->reason);
         	xEventGroupClearBits(wifiEventGroup, WIFI_CONNECTED_BIT);
         	esp_wifi_connect();
         	break;
@@ -131,9 +148,9 @@ static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){
 	return ESP_OK;
 }
 
-void wifiInit(void) {
-
-	printf("WiFi - Initialisation - Start.\n");
+void wifiInit(void) 
+{
+	ESP_LOGI(TAG, "WiFi - Initialisation - Start.\n");
 
 	wifiEventGroup = xEventGroupCreate();
 
@@ -149,8 +166,8 @@ void wifiInit(void) {
 	}
 }
 
-void wifiResetNVS(void){
-
+void wifiResetNVS(void)
+{
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
@@ -165,28 +182,3 @@ void wifiResetNVS(void){
 
 	messageNVSReset("wifi", 0xFF);
 }
-
-
-
-// void wifiStationScanDone(void *arg, int status){
-
-// 	struct bss_info *bss = (struct bss_info *) arg;
-
-//     while (bss != NULL) {
-
-//         if (bss->channel != 0) {
-
-//             struct router_info *info = NULL;
-//             os_printf("ssid %s, channel %d, authmode %d, rssi %d\n", bss->ssid, bss->channel, bss->authmode, bss->rssi);
-//         }
-//         bss = bss->next.stqe_next;
-//     }
-// }
-
-// void wifiStationScanStart(void){
-
-// 	wifi_set_opmode(STATION_MODE);
-// 	wifi_station_set_auto_connect(0);
-
-// 	wifi_station_scan(NULL, wifiStationScanDone);
-// }

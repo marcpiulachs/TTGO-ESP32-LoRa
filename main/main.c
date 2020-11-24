@@ -5,26 +5,16 @@
 #include <esp_log.h>
 #include <esp_pm.h>
 
-//#include "beeline.h"
-
 #include "wifi.h"
 #include "wifi_access_point.h"
 #include "wifi_client.h"
-
 #include "http.h"
 #include "mqtt_connection.h"
 #include "die_sensors.h"
-#include "elastic.h"
-//#include "display.h"
-// #include "radio.h"
 #include "datetime.h"
-//#include "radio.h"
 #include "audio.h"
 #include "sounds.h"
 #include "valve.h"
-// #include "os.h"
-// #include "sys/param.h"
-// #include "crypto/base64.h"
 
 static const char *TAG = "Main";
 
@@ -108,7 +98,7 @@ void app_main(void)
     	wifiResetNVS();
     	wifiClientResetNVS();
     	mqttConnectionResetNVS();
-    	elasticResetNVS();
+//    	elasticResetNVS();
     	datTimeResetNVS();
   //  	radioResetNVS();
     	dieSensorsResetNVS();

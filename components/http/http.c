@@ -24,8 +24,7 @@
 #include "menu_html.h"
 #include "style_css.h"
 
-
-#define TAG "http"
+static const char *TAG = "Http";
 
 static void httpServerURLDecode(char * input, int length) {
 
@@ -376,7 +375,7 @@ static void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bu
 
 esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
 
-	wifiUsed();
+	wifi_used();
 
 	char outBuffer[4096];
 
@@ -409,7 +408,7 @@ void stop_webserver(httpd_handle_t server) {
 
 static httpd_handle_t start_webserver(void) {
 
-	wifiUsed();
+	wifi_used();
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     
@@ -481,6 +480,8 @@ static void httpServerTask(void *arg){
 
 void httpServerInit()
 {
-	BaseType_t result = xTaskCreate(&httpServerTask, "http", 8192, NULL, 12, NULL);
-	assert(result == pdPASS);
+	BaseType_t taskResult = xTaskCreate(&httpServerTask, "http", 8192, NULL, 12, NULL);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 }

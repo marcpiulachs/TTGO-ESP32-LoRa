@@ -15,14 +15,16 @@
 
 static EventGroupHandle_t datetimeEventGroup;
 
-static const char *TAG = "datetime";
+static const char *TAG = "DateTime";
 
+/*
 EventGroupHandle_t dateTimeGetEventGroup(void){
 	return datetimeEventGroup;
 }
+*/
 
-static void dateTimeTask(void *arg){
-
+static void dateTimeTask(void *arg)
+{
 	xEventGroupClearBits(datetimeEventGroup, TIME_READY_BIT);
 
 	xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT, false, true, portMAX_DELAY);
@@ -31,7 +33,6 @@ static void dateTimeTask(void *arg){
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
     size_t nvsLength;
-
 	char dateTimeNTPHost[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
     nvsLength = sizeof(dateTimeNTPHost);
 	nvs_get_str(nvsHandle, "dateTimeNTPHost", dateTimeNTPHost, &nvsLength);
@@ -39,6 +40,7 @@ static void dateTimeTask(void *arg){
 	nvs_close(nvsHandle);
 
     ESP_LOGI(TAG, "Initializing SNTP");
+
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, dateTimeNTPHost);
     sntp_init();
@@ -63,16 +65,18 @@ static void dateTimeTask(void *arg){
     vTaskDelete(NULL);
 }
 
-void dateTimeInit(void){
-
+void dateTimeInit(void)
+{
 	datetimeEventGroup = xEventGroupCreate();
 
-	BaseType_t result = xTaskCreate(&dateTimeTask, "dateTimeTask", 2048, NULL, 13, NULL);
-	assert(result == pdPASS);
+	BaseType_t taskResult = xTaskCreate(&dateTimeTask, "dateTimeTask", 2048, NULL, 13, NULL);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 }
 
-void datTimeResetNVS(void){
-
+void datTimeResetNVS(void)
+{
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 

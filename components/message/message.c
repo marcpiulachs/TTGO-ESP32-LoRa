@@ -4,15 +4,14 @@
 
 #include "message.h"
 #include "mqtt_connection.h"
-#include "elastic.h"
 
-#define TAG "message"
+static const char *TAG = "Message";
 
 unsigned char disaplyLine = 0;
 
 void publish_message(message_t * messagePointer)
 {
-	char valueString[sizeof(messagePointer->stringValue)] = {0};
+	//har valueString[sizeof(messagePointer->stringValue)] = {0};
 
 	switch (messagePointer->valueType){
 
@@ -76,8 +75,8 @@ void publish_message(message_t * messagePointer)
 
 }
 
-void messageNVSReset(char * from, unsigned char defaults){
-
+void messageNVSReset(char * from, unsigned char defaults)
+{
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 

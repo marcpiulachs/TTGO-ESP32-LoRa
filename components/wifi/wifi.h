@@ -12,7 +12,8 @@
 void wifiInit(void);
 void wifiResetNVS(void);
 EventGroupHandle_t wifiGetEventGroup(void);
-void wifiUsed(void);
+void wifi_used(void);
+void publish_wifi_stat (void);
 
 #define WIFI_CONNECTED_BIT	BIT0
 

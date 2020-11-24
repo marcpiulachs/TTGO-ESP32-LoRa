@@ -17,7 +17,7 @@
 #include "soc/rtc_cntl_reg.h"
 #include "soc/sens_reg.h"
 
-static const char * TAG = "dieSensors";
+static const char *TAG = "Sensors";
 
 static const char * ROUTE_NAME = "dieSens";
 
@@ -56,12 +56,12 @@ static float dieSensorsReadADC(adc1_channel_t channel) {
 	return result;
 }
 
-static void dieSensorsTemperatureTask(void * arg){
-
+static void dieSensorsTemperatureTask(void * arg)
+{
 	message_t message;
 	message.valueType = MESSAGE_FLOAT;
 	message.topicType = BATTERY_STAT;
-	strcpy(message.sensorName, "DieTemp");
+	//strcpy(message.sensorName, "DieTemp");
 
 	size_t nvsLength;
 	nvs_handle nvsHandle;
@@ -85,9 +85,6 @@ static void dieSensorsTemperatureTask(void * arg){
 
 		message.floatValue = dieSensorsGetTemperature();
 
-		nvsLength = sizeof(message.deviceName);
-		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
-
 		publish_message(&message);
 	}
 
@@ -101,7 +98,7 @@ static void dieSensorsHallEffectTask(void * arg){
 	message_t message;
 	message.valueType = MESSAGE_FLOAT;
 	message.topicType = BATTERY_STAT;
-	strcpy(message.sensorName, "Hall");
+	//strcpy(message.sensorName, "Hall");
 
 	size_t nvsLength;
 	nvs_handle nvsHandle;
@@ -124,10 +121,10 @@ static void dieSensorsHallEffectTask(void * arg){
 		vTaskDelay(delay / portTICK_RATE_MS);
 
 		message.floatValue = hall_sensor_read();
-
+/*
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
-
+*/
 		publish_message(&message);
 	}
 
@@ -251,7 +248,7 @@ void dieSensorsInit(void) {
     	ESP_LOGW(TAG, "ADC Default will be used");
     }
 
-	BaseType_t result;
+	BaseType_t taskResult;
 	/*
 	result = xTaskCreate(&dieSensorsTemperatureTask, "dieSensorsTemp", 4096, NULL, 10, NULL);
 	assert(result == pdPASS);
@@ -259,15 +256,19 @@ void dieSensorsInit(void) {
 	result = xTaskCreate(&dieSensorsHallEffectTask, "dieSensorsHall", 4096, NULL, 10, NULL);
 	assert(result == pdPASS);
 	*/
-	result = xTaskCreate(&dieSensorsBatteryVoltageTask, "dieSensorsBattyV", 4096, NULL, 10, NULL);
-	assert(result == pdPASS);
+	taskResult = xTaskCreate(&dieSensorsBatteryVoltageTask, "dieSensorsBattyV", 4096, NULL, 10, NULL);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 	
-	result = xTaskCreate(&wiFiSignalStrenghtTask, "wifiRSSI", 4096, NULL, 10, NULL);
-	assert(result == pdPASS);
+	taskResult = xTaskCreate(&wiFiSignalStrenghtTask, "wifiRSSI", 4096, NULL, 10, NULL);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 }
 
-void dieSensorsResetNVS(void) {
-
+void dieSensorsResetNVS(void)
+{
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 

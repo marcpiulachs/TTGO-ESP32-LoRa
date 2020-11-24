@@ -1,11 +1,14 @@
 #include <string.h>
+#include <esp_log.h>
 
 #include "wifi.h"
 
+static const char *TAG = "WiFiAP";
+
 #define WIFI_AP_SSID "HDO Station Configuration AP"
 
-void wifiAccessPointInit(void) {
-
+void wifiAccessPointInit(void) 
+{
 	wifiInit();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -17,7 +20,7 @@ void wifiAccessPointInit(void) {
 	        .ssid = WIFI_AP_SSID,
 	        .ssid_len = strlen(WIFI_AP_SSID),
 	        .max_connection = 1
-		},
+		  },
     };
 
     wifi_config.ap.authmode = WIFI_AUTH_OPEN;
@@ -25,5 +28,5 @@ void wifiAccessPointInit(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config));
 
-    printf("wifiAccessPointInit: finished. SSID:%s", WIFI_AP_SSID);
+    ESP_LOGW(TAG, "wifiAccessPointInit: finished. SSID:%s", WIFI_AP_SSID);
 }

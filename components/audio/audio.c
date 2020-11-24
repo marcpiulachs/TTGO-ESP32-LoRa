@@ -6,7 +6,7 @@
 #include <driver/adc.h>
 #include <esp_log.h>
 
-#define TAG "audio"
+static const char *TAG = "Audio";
 
 // Pin corresponding to the AMP enable signal, turn on amp only when audio is going to be played
 static const gpio_num_t AUDIO_AMP_SD_PIN = GPIO_NUM_25;
@@ -21,7 +21,7 @@ typedef struct
 
 static void PlayTask(void *arg)
 {
-	while(true)
+	for ( ;; )
 	{
 		QueueData data;
 		if (!xQueueReceive(audioQueue, &data, 4000 / portTICK_RATE_MS))
@@ -77,8 +77,10 @@ void audioInit(void)
 	assert(audioQueue);
 
 	// Create a task on the second core
-	BaseType_t result = xTaskCreatePinnedToCore(&PlayTask, "I2S Task", 4096, NULL, 5, NULL, 1);
-	assert(result == pdPASS);
+	BaseType_t taskResult = xTaskCreatePinnedToCore(&PlayTask, "I2S Task", 4096, NULL, 5, NULL, 1);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 
 	ESP_LOGW(TAG, "Audio initialized.");
 }
@@ -98,4 +100,14 @@ void audioPlay(uint8_t* buffer, int length)
 	ESP_LOGW(TAG, "Sending audio to queue.");
 
 	xQueueSendToBack(audioQueue, &data, portMAX_DELAY);
+}
+
+void audioPlayAuthorized(void)
+{
+
+}
+
+void audioPlayDenied(void)
+{
+
 }

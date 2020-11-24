@@ -4,10 +4,10 @@
 
 #include "wifi.h"
 
-#define TAG "WiFiClient"
+static const char *TAG = "WiFiClient";
 
-void wifiClientInit(void) {
-
+void wifiClientInit(void)
+{
 	wifiInit();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -47,8 +47,8 @@ void wifiClientInit(void) {
 	ESP_LOGI(TAG, "WiFI Connecting to AP");
 }
 
-void wifiClientResetNVS(void){
-
+void wifiClientResetNVS(void)
+{
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 

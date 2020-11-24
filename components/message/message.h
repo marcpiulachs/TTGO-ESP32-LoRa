@@ -20,8 +20,10 @@ enum messageTopic_t
 };
 
 typedef struct{
+	/*
 	char deviceName[16];
 	char sensorName[16];
+	*/
 	int valueType;
 	int intValue;
 	int topicType;

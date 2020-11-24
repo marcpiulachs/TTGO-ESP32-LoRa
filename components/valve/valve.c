@@ -8,7 +8,7 @@
 #include "valve.h"
 #include "message.h"
 
-#define TAG "valve"
+static const char *TAG = "Valve";
 
 // Pin corresponding to the AMP enable signal, turn on amp only when audio is going to be played
 static const gpio_num_t FOWARD_PIN = GPIO_NUM_5;
@@ -26,6 +26,7 @@ static void open_valve1_task(void *pvParameters)
 {
 	uint32_t ulNotifiedValue;
 
+	/* This task is also defined within an infinite loop. */
 	for (;;)
 	{
 		/* Block to wait for a notification */
@@ -57,6 +58,7 @@ static void close_valve1_task(void *pvParameters)
 {
 	uint32_t ulNotifiedValue;
 
+	/* This task is also defined within an infinite loop. */
 	for (;;)
 	{
 		/* Block to wait for a notification */
@@ -88,6 +90,7 @@ static void open_valve2_task(void *pvParameters)
 {
 	uint32_t ulNotifiedValue;
 
+	/* This task is also defined within an infinite loop. */
 	for (;;)
 	{
 		/* Block to wait for a notification */
@@ -119,6 +122,7 @@ static void close_valve2_task(void *pvParameters)
 {
 	uint32_t ulNotifiedValue;
 
+	/* This task is also defined within an infinite loop. */
 	for (;;)
 	{
 		/* Block to wait for a notification */
@@ -204,17 +208,25 @@ void valveInit(void)
 
 	ESP_ERROR_CHECK(gpio_config(&gpioConfig));
 
-	BaseType_t result;
+	BaseType_t taskResult;
 
-	result = xTaskCreate(&open_valve1_task, "Open Valve [1]", 2048, NULL, 3, &openValve1Task);
-	assert(result == pdPASS);
+	taskResult = xTaskCreate(&open_valve1_task, "Open Valve [1]", 2048, NULL, 3, &openValve1Task);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 
-	result = xTaskCreate(&close_valve1_task, "Close Valve [1]", 2048, NULL, 3, &closeValve1Task);
-	assert(result == pdPASS);
+	taskResult = xTaskCreate(&close_valve1_task, "Close Valve [1]", 2048, NULL, 3, &closeValve1Task);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 
-	result = xTaskCreate(&open_valve2_task, "Open Valve [2]", 2048, NULL, 3, &openValve2Task);
-	assert(result == pdPASS);
+	taskResult = xTaskCreate(&open_valve2_task, "Open Valve [2]", 2048, NULL, 3, &openValve2Task);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 
-	result = xTaskCreate(&close_valve2_task, "Close Valve [2]", 2048, NULL, 3, &closeValve2Task);
-	assert(result == pdPASS);
+	taskResult = xTaskCreate(&close_valve2_task, "Close Valve [2]", 2048, NULL, 3, &closeValve2Task);
+	if (taskResult != pdTRUE) {
+		assert(pdFAIL);
+	}
 }
