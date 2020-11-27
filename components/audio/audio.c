@@ -13,19 +13,12 @@ static const gpio_num_t AUDIO_AMP_SD_PIN = GPIO_NUM_25;
 
 static xQueueHandle audioQueue = NULL;
 
-typedef struct
-{
-	uint8_t* buffer;
-	int length;
-} QueueData;
-
 static void PlayTask(void *arg)
 {
 	for ( ;; )
 	{
-		QueueData data;
-		if (!xQueueReceive(audioQueue, &data, 4000 / portTICK_RATE_MS))
-		{
+		audio_r data;
+		if (!xQueueReceive(audioQueue, &data, 4000 / portTICK_RATE_MS)) {
 			continue;
 		}
 
@@ -48,7 +41,7 @@ static void PlayTask(void *arg)
 	}
 }
 
-void audioInit(void)
+void audio_init(void)
 {
 	// Configure the amplifier shutdown signal
 	gpio_config_t gpioConfig = {};
@@ -73,7 +66,7 @@ void audioInit(void)
 	ESP_ERROR_CHECK(i2s_set_dac_mode(I2S_DAC_CHANNEL_LEFT_EN));
 
 	// Create task for playing sounds so that our main task isn't blocked
-	audioQueue = xQueueCreate(2, sizeof(QueueData));
+	audioQueue = xQueueCreate(2, sizeof(audio_r));
 	assert(audioQueue);
 
 	// Create a task on the second core
@@ -87,7 +80,7 @@ void audioInit(void)
 
 void audioPlay(uint8_t* buffer, int length)
 {
-	QueueData data = {};
+	audio_r data = {};
 
 	data.buffer = buffer;
 	data.length = length;

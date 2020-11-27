@@ -26,7 +26,7 @@ typedef struct{
 	unsigned int length;
 } tokens_t;
 
-void httpServerInit(void);
+void httpd_init(void);
 esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength);
 
 #define MAX_HTTP_SSI_KEY_LENGTH 32

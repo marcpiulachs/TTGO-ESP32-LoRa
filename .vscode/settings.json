@@ -19,8 +19,10 @@
       "xutility": "c",
       "future": "c",
       "system_error": "c",
-      "*.ipp": "c"
+      "*.ipp": "c",
+      "gpio.h": "c",
+      "queue.h": "c"
     },
-    "idf.portWin": "COM3"
+    "idf.portWin": "COM8"
   }
   

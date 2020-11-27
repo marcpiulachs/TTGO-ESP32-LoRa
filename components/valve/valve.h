@@ -11,6 +11,6 @@ void close_valve2(void);
 void publish_valve1_stat(void);
 void publish_valve2_stat(void);
 
-void valveInit(void);
+void valve_init(void);
 
 #endif

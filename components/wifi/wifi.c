@@ -33,8 +33,8 @@ int wifiIdleDisconnectEnabled(void)
 
 void wifiIdleTimeout( TimerHandle_t xTimer )
 {
-	if (wifiEnabled){
-
+	if (wifiEnabled)
+	{
 		ESP_LOGW(TAG, "WiFi idle timer triggered.");
 
 		if (!wifiIdleDisconnectEnabled()){
@@ -43,7 +43,7 @@ void wifiIdleTimeout( TimerHandle_t xTimer )
 
 		ESP_LOGW(TAG, "Disabling WiFi");
 
-		mqttConnectionWiFiDisconnected();
+		mqtt_conn_wifi_disconnected();
 
     	ESP_ERROR_CHECK(esp_wifi_stop());
 
@@ -63,7 +63,7 @@ void wifi_used(void)
 
 		ESP_ERROR_CHECK(esp_wifi_start());
 
-		mqttConnectionWiFiConnected();
+		mqtt_conn_wifi_connected();
 
     	ESP_LOGW(TAG, "WiFi idle timer reset. Enabling WiFi");
 
@@ -148,7 +148,7 @@ static esp_err_t wifiEventHandler(void *ctx, system_event_t *event)
 	return ESP_OK;
 }
 
-void wifiInit(void) 
+void wifi_init(void) 
 {
 	ESP_LOGI(TAG, "WiFi - Initialisation - Start.\n");
 
@@ -166,7 +166,7 @@ void wifiInit(void)
 	}
 }
 
-void wifiResetNVS(void)
+void wifi_reset_nvs(void)
 {
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));

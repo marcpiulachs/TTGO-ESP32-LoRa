@@ -9,8 +9,8 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 
-void wifiInit(void);
-void wifiResetNVS(void);
+void wifi_init(void);
+void wifi_reset_nvs(void);
 EventGroupHandle_t wifiGetEventGroup(void);
 void wifi_used(void);
 void publish_wifi_stat (void);

@@ -478,7 +478,7 @@ static void httpServerTask(void *arg){
     return;
 }
 
-void httpServerInit()
+void httpd_init()
 {
 	BaseType_t taskResult = xTaskCreate(&httpServerTask, "http", 8192, NULL, 12, NULL);
 	if (taskResult != pdTRUE) {

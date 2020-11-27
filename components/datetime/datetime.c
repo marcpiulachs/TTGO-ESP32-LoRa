@@ -65,7 +65,7 @@ static void dateTimeTask(void *arg)
     vTaskDelete(NULL);
 }
 
-void dateTimeInit(void)
+void datetime_init(void)
 {
 	datetimeEventGroup = xEventGroupCreate();
 
@@ -75,7 +75,7 @@ void dateTimeInit(void)
 	}
 }
 
-void datTimeResetNVS(void)
+void datetime_reset_nvs(void)
 {
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));

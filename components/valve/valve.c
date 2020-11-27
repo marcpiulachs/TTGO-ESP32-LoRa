@@ -10,9 +10,15 @@
 
 static const char *TAG = "Valve";
 
+static const int OPERATION_TIME = 5000;
+
 // Pin corresponding to the AMP enable signal, turn on amp only when audio is going to be played
-static const gpio_num_t FOWARD_PIN = GPIO_NUM_5;
-static const gpio_num_t REVERSE_PIN = GPIO_NUM_5;
+static const gpio_num_t VALVE_ENABLE_PIN = GPIO_NUM_22;
+
+static const gpio_num_t VALVE_2_FOWARD_PIN = GPIO_NUM_16;
+static const gpio_num_t VALVE_2_REVERSE_PIN = GPIO_NUM_17;
+static const gpio_num_t VALVE_1_FOWARD_PIN = GPIO_NUM_18;
+static const gpio_num_t VALVE_1_REVERSE_PIN = GPIO_NUM_19;
 
 static TaskHandle_t openValve1Task = NULL;
 static TaskHandle_t closeValve1Task = NULL;
@@ -21,6 +27,20 @@ static TaskHandle_t closeValve2Task = NULL;
 
 static int valve1Stat = VALVE_CLOSED;
 static int valve2Stat = VALVE_CLOSED;
+
+void enable_motor_controller()
+{
+	gpio_set_level(VALVE_ENABLE_PIN, 1);
+
+	ESP_LOGI(TAG, "Motor controller enabled");
+}
+
+void disable_motor_controller()
+{
+	gpio_set_level(VALVE_ENABLE_PIN, 0);
+
+	ESP_LOGI(TAG, "Motor controller disabled");
+}
 
 static void open_valve1_task(void *pvParameters)
 {
@@ -34,10 +54,16 @@ static void open_valve1_task(void *pvParameters)
 
 		if (ulNotifiedValue > 0)
 		{
+			/* Enables the motor controller before opening/closing the valve */
+			enable_motor_controller();
+
 			/* Perform any processing necessitated by the interrupt. */
-			gpio_set_level(FOWARD_PIN, 1);
-			vTaskDelay(500 / portTICK_RATE_MS);
-			gpio_set_level(FOWARD_PIN, 0);
+			gpio_set_level(VALVE_1_FOWARD_PIN, 1);
+			vTaskDelay(OPERATION_TIME / portTICK_RATE_MS);
+			gpio_set_level(VALVE_1_FOWARD_PIN, 0);
+
+			/* once the operation is complete turn off the motor controller till next operation */
+			disable_motor_controller();
 
 			valve1Stat = VALVE_OPENED;
 			
@@ -66,10 +92,16 @@ static void close_valve1_task(void *pvParameters)
 
 		if (ulNotifiedValue > 0)
 		{
+			/* Enables the motor controller before opening/closing the valve */
+			enable_motor_controller();
+
 			/* Perform any processing necessitated by the interrupt. */
-			gpio_set_level(REVERSE_PIN, 1);
-			vTaskDelay(500 / portTICK_RATE_MS);
-			gpio_set_level(REVERSE_PIN, 0);
+			gpio_set_level(VALVE_1_REVERSE_PIN, 1);
+			vTaskDelay(OPERATION_TIME / portTICK_RATE_MS);
+			gpio_set_level(VALVE_1_REVERSE_PIN, 0);
+
+			/* once the operation is complete turn off the motor controller till next operation */
+			disable_motor_controller();
 
 			valve1Stat = VALVE_CLOSED;
 
@@ -98,10 +130,16 @@ static void open_valve2_task(void *pvParameters)
 
 		if (ulNotifiedValue > 0)
 		{
+			/* Enables the motor controller before opening/closing the valve */
+			enable_motor_controller();
+
 			/* Perform any processing necessitated by the interrupt. */
-			gpio_set_level(FOWARD_PIN, 1);
-			vTaskDelay(500 / portTICK_RATE_MS);
-			gpio_set_level(FOWARD_PIN, 0);
+			gpio_set_level(VALVE_2_FOWARD_PIN, 1);
+			vTaskDelay(OPERATION_TIME / portTICK_RATE_MS);
+			gpio_set_level(VALVE_2_FOWARD_PIN, 0);
+
+			/* once the operation is complete turn off the motor controller till next operation */
+			disable_motor_controller();
 
 			valve2Stat = VALVE_OPENED;
 			
@@ -130,10 +168,16 @@ static void close_valve2_task(void *pvParameters)
 
 		if (ulNotifiedValue > 0)
 		{
+			/* Enables the motor controller before opening/closing the valve */
+			enable_motor_controller();
+
 			/* Perform any processing necessitated by the interrupt. */
-			gpio_set_level(REVERSE_PIN, 1);
-			vTaskDelay(500 / portTICK_RATE_MS);
-			gpio_set_level(REVERSE_PIN, 0);
+			gpio_set_level(VALVE_2_REVERSE_PIN, 1);
+			vTaskDelay(OPERATION_TIME / portTICK_RATE_MS);
+			gpio_set_level(VALVE_2_REVERSE_PIN, 0);
+
+			/* once the operation is complete turn off the motor controller till next operation */
+			disable_motor_controller();
 
 			valve2Stat = VALVE_CLOSED;
 
@@ -194,38 +238,41 @@ void publish_valve2_stat(void)
 	publish_message(&message);
 }
 
-void valveInit(void)
+void valve_init(void)
 {
 	gpio_config_t gpioConfig = {};
 
-	gpioConfig.mode = GPIO_MODE_OUTPUT;
-	gpioConfig.pin_bit_mask = 1ULL << FOWARD_PIN;
-
-	ESP_ERROR_CHECK(gpio_config(&gpioConfig));
-
-	gpioConfig.mode = GPIO_MODE_OUTPUT;
-	gpioConfig.pin_bit_mask = 1ULL << REVERSE_PIN;
+	gpioConfig.intr_type = GPIO_PIN_INTR_DISABLE;
+    gpioConfig.mode = GPIO_MODE_OUTPUT;
+    gpioConfig.pull_down_en = GPIO_PULLUP_ENABLE;
+    gpioConfig.pull_up_en = GPIO_PULLDOWN_DISABLE;
+    gpioConfig.pin_bit_mask = 
+		  (1ULL << VALVE_ENABLE_PIN)
+		| (1ULL << VALVE_1_FOWARD_PIN)
+		| (1ULL << VALVE_1_REVERSE_PIN)
+		| (1ULL << VALVE_2_FOWARD_PIN)
+		| (1ULL << VALVE_2_REVERSE_PIN);
 
 	ESP_ERROR_CHECK(gpio_config(&gpioConfig));
 
 	BaseType_t taskResult;
 
-	taskResult = xTaskCreate(&open_valve1_task, "Open Valve [1]", 2048, NULL, 3, &openValve1Task);
+	taskResult = xTaskCreate(&open_valve1_task, "open_valve_1", 2048, NULL, 3, &openValve1Task);
 	if (taskResult != pdTRUE) {
 		assert(pdFAIL);
 	}
 
-	taskResult = xTaskCreate(&close_valve1_task, "Close Valve [1]", 2048, NULL, 3, &closeValve1Task);
+	taskResult = xTaskCreate(&close_valve1_task, "close_valve_1", 2048, NULL, 3, &closeValve1Task);
 	if (taskResult != pdTRUE) {
 		assert(pdFAIL);
 	}
 
-	taskResult = xTaskCreate(&open_valve2_task, "Open Valve [2]", 2048, NULL, 3, &openValve2Task);
+	taskResult = xTaskCreate(&open_valve2_task, "open_valve_2", 2048, NULL, 3, &openValve2Task);
 	if (taskResult != pdTRUE) {
 		assert(pdFAIL);
 	}
 
-	taskResult = xTaskCreate(&close_valve2_task, "Close Valve [2]", 2048, NULL, 3, &closeValve2Task);
+	taskResult = xTaskCreate(&close_valve2_task, "close_valve_2", 2048, NULL, 3, &closeValve2Task);
 	if (taskResult != pdTRUE) {
 		assert(pdFAIL);
 	}

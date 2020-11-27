@@ -8,12 +8,12 @@
 
 #include "message.h"
 
-void mqttConnectionInit(void);
-void init_topic_routes(void);
-void mqttConnectionResetNVS(void);
-void mqttConnectionQueueAdd(message_t * message);
-void mqttConnectionWiFiConnected(void);
-void mqttConnectionWiFiDisconnected(void);
+void mqtt_conn_init_topics(void);
+void mqtt_conn_init(void);
+void mqtt_conn_reset_nvs(void);
+void mqtt_conn_queue_add(message_t * message);
+void mqtt_conn_wifi_connected(void);
+void mqtt_conn_wifi_disconnected(void);
 
 void handle_mqtt_event_data(char *topic, char *payload);
 

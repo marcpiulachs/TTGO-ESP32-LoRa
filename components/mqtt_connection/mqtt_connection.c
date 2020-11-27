@@ -45,7 +45,7 @@ char mqttBatteryTeleTopic[64] = {0};
 char mqttWifiStatTopic[64] = {0};
 char mqttWifiTeleTopic[64] = {0};
 
-char mqttRequestCmndTopic[64] = {0};
+char mqttStatusCmndTopic[64] = {0};
 char mqttRequestTeleTopic[64] = {0};
 
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) 
@@ -88,10 +88,9 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             msg_id = esp_mqtt_client_subscribe(client, mqttWifiStatTopic, 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
-			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttRequestCmndTopic);
-            msg_id = esp_mqtt_client_subscribe(client, mqttRequestCmndTopic, 0);
+			ESP_LOGI(TAG, "Subscribe to topic : %s", mqttStatusCmndTopic);
+            msg_id = esp_mqtt_client_subscribe(client, mqttStatusCmndTopic, 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
 
 			/*
             msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
@@ -189,7 +188,7 @@ void replace_topic_token(char *str, char *orig, char *rep, char *result)
   strcpy(result, buffer);
 }
 
-void init_topic_routes (void)
+void mqtt_conn_init_topics (void)
 {
 	size_t nvsLength;
 	nvs_handle nvsHandle;
@@ -253,9 +252,9 @@ void init_topic_routes (void)
 	replace_topic_token(mqttRequestTeleTopic, "{topic}", "request", mqttRequestTeleTopic);
 	replace_topic_token(mqttRequestTeleTopic, "{prefix}", "tele", mqttRequestTeleTopic);
 
-	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttRequestCmndTopic);
-	replace_topic_token(mqttRequestCmndTopic, "{topic}", "request", mqttRequestCmndTopic);
-	replace_topic_token(mqttRequestCmndTopic, "{prefix}", "cmnd", mqttRequestCmndTopic);	
+	replace_topic_token(mqttOutTopic, "{device}", deviceName, mqttStatusCmndTopic);
+	replace_topic_token(mqttStatusCmndTopic, "{topic}", "status", mqttStatusCmndTopic);
+	replace_topic_token(mqttStatusCmndTopic, "{prefix}", "cmnd", mqttStatusCmndTopic);	
 
 	nvs_close(nvsHandle);
 }
@@ -324,26 +323,32 @@ void handle_mqtt_event_data(char *topic, char *payload)
 		ESP_LOGI(TAG, "WiFi STAT requested");
 		publish_wifi_stat();
 	}
-	else if (strcmp(topic, mqttRequestCmndTopic) == 0) 
+	else if (strcmp(topic, mqttStatusCmndTopic) == 0) 
 	{
-		if (strcmp(payload, "AUTHORIZED") == 0)
+		if (strcmp(payload, "AUTHORIZED") == 0 ||
+			strcmp(payload, "READY") == 0)
 		{
 			ESP_LOGI(TAG, "Service request authorized received");
 			audioPlayAuthorized();
 		}
-		else if (strcmp(payload, "DENIED") == 0)
+		else if (strcmp(payload, "DENIED") == 0 ||
+				 strcmp(payload, "UNAVAILABLE") == 0)
 		{
 			ESP_LOGI(TAG, "Service requested denied received");
 			audioPlayDenied();
 		}
 		else
 		{
-			ESP_LOGE(TAG, "Unknown payload received %s", payload);
+			ESP_LOGE(TAG, "Topic: '%s' but unknown payload received %s", topic, payload);
 		}
-	}	
+	}
+	else
+	{
+		ESP_LOGE(TAG, "Topic: '%s' is unknown", topic);
+	}
 }
 
-void mqttConnectionSetClient(void)
+void mqtt_conn_set_client(void)
 {
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
@@ -390,13 +395,13 @@ void mqttConnectionSetClient(void)
     client = esp_mqtt_client_init(&mqtt_cfg);
 }
 
-void mqttConnectionWiFiConnected(void)
+void mqtt_conn_wifi_connected(void)
 {
-	mqttConnectionSetClient();
+	mqtt_conn_set_client();
 	esp_mqtt_client_start(client);
 }
 
-void mqttConnectionWiFiDisconnected(void)
+void mqtt_conn_wifi_disconnected(void)
 {
 	esp_mqtt_client_stop(client);
 }
@@ -414,8 +419,8 @@ static void mqttConnectionTask(void *arg)
 
 	nvs_close(nvsHandle);
 
-	while (true){
-
+	for ( ;; )
+	{
 		message_t message;
 		if (!xQueueReceive(mqttConnectionQueue, &message, 4000 / portTICK_RATE_MS)) {
 			continue;
@@ -460,7 +465,7 @@ static void mqttConnectionTask(void *arg)
 	}
 }
 
-void mqttConnectionQueueAdd(message_t * message) 
+void mqtt_conn_queue_add(message_t * message) 
 {
 	if (!uxQueueSpacesAvailable(mqttConnectionQueue)) {
 		ESP_LOGE(TAG, "No room in queue for message.");
@@ -470,7 +475,7 @@ void mqttConnectionQueueAdd(message_t * message)
 	xQueueSend(mqttConnectionQueue, message, 0);
 }
 
-void mqttConnectionInit(void)
+void mqtt_conn_init(void)
 {
 	mqttConnectionEventGroup = xEventGroupCreate();
 
@@ -482,12 +487,12 @@ void mqttConnectionInit(void)
 		assert(pdFAIL);
 	}
 
-	init_topic_routes();
+	mqtt_conn_init_topics();
 
 	wifi_used();
 }
 
-void mqttConnectionResetNVS(void) 
+void mqtt_conn_reset_nvs(void) 
 {
 	nvs_handle nvsHandle;
 

@@ -50,7 +50,7 @@ void publish_message(message_t * messagePointer)
 	nvs_close(nvsHandle);
 
 	ESP_LOGI(TAG, "Forwarding to MQTT");
-	mqttConnectionQueueAdd(messagePointer);
+	mqtt_conn_queue_add(messagePointer);
 
 /*
 	if ((routing >> LORA) & 0x01){
@@ -60,7 +60,7 @@ void publish_message(message_t * messagePointer)
 
 	if ((routing >> MQTT) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to MQTT");
-		mqttConnectionQueueAdd(messagePointer);
+		mqtt_conn_queue_add(messagePointer);
 	}
 
 	if ((routing >> ELASTICSEARCH) & 0x01){
